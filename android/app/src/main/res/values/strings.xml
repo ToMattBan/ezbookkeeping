@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">EzBookKeeping</string>
+    <string name="title_activity_main">EzBookKeeping</string>
+    <string name="package_name">com.bills.ezbookkeping</string>
+    <string name="custom_url_scheme">com.bills.ezbookkeping</string>
+</resources>

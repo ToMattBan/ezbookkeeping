@@ -14,11 +14,14 @@
   "scripts": {
     "serve": "cross-env NODE_ENV=development vite",
     "build": "cross-env NODE_ENV=production vite build",
+    "build:android": "rm -rf dist && pnpm build && npx cap sync && cd ./android && ./gradlew assembleDebug && rm -rf ../output && mkdir -p ../output && cp ./app/build/outputs/apk/debug/app-debug.apk ../output/ezBookKeeping.apk",
     "serve:dist": "vite preview",
     "lint": "vue-tsc --noEmit && eslint . --fix",
     "test": "cross-env TS_NODE_PROJECT=\"./tsconfig.jest.json\" jest"
   },
   "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/core": "^8.0.0",
     "@mdi/js": "^7.4.47",
     "@vuepic/vue-datepicker": "^12.1.0",
     "axios": "^1.13.2",
@@ -50,6 +53,8 @@
     "vuetify": "^3.11.3"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
+    "@capacitor/cli": "^8.0.0",
     "@jest/globals": "^30.2.0",
     "@tsconfig/node24": "^24.0.3",
     "@types/cbor-js": "^0.1.1",
