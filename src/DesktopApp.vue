@@ -16,7 +16,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeMount } from 'vue';
 
 import { useTheme } from 'vuetify';
 import { register } from 'register-service-worker';
@@ -36,6 +36,10 @@ import { initMapProvider } from '@/lib/map/index.ts';
 import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
 import { updateMapCacheExpiration } from '@/lib/cache.ts';
 import { getSystemTheme, setExpenseAndIncomeAmountColor } from '@/lib/ui/common.ts';
+
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
+import router from './router/desktop';
 
 const { tt, getCurrentLanguageInfo, setLanguage, initLocale } = useI18n();
 
@@ -72,6 +76,16 @@ const initialRoutePath: string = (() => {
 const showNotification = ref<boolean>(false);
 
 const currentNotificationContent = computed<string | null>(() => rootStore.currentNotification);
+
+onBeforeMount(() => {
+    if (Capacitor.isNativePlatform()) {
+        App.addListener('backButton', ((canGoBack) => {
+            if (canGoBack) {
+                router.back();
+            }
+        }))
+    }
+})
 
 onMounted(() => {
     document.addEventListener('DOMContentLoaded', () => {

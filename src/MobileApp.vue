@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeMount } from 'vue';
 
 import type { Framework7Parameters, Notification, Actions, Dialog, Popover, Popup, Sheet } from 'framework7/types';
 import { f7ready } from 'framework7-vue';
@@ -31,6 +31,9 @@ import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
 import { updateMapCacheExpiration } from '@/lib/cache.ts';
 import { setExpenseAndIncomeAmountColor } from '@/lib/ui/common.ts';
 import { isiOSHomeScreenMode, isModalShowing, setAppFontSize } from '@/lib/ui/mobile.ts';
+
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 
 const { tt, getCurrentLanguageInfo, setLanguage, initLocale } = useI18n();
 
@@ -144,6 +147,18 @@ function onBackdropChanged(element: { push?: boolean, opened?: boolean }): void 
 
     setThemeColorMeta(environmentsStore.framework7DarkMode);
 }
+
+onBeforeMount(() => {
+    if (Capacitor.isNativePlatform()) {
+        App.addListener('backButton', (() => {
+            const backButton: HTMLElement | null = document.querySelector('.link.icon-only.back');
+
+            if (backButton) {
+                backButton.click();
+            }
+        }))
+    }
+})
 
 onMounted(() => {
     setAppFontSize(settingsStore.appSettings.fontSize);
