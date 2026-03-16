@@ -12,6 +12,7 @@
     "url": "https://github.com/mayswind/ezbookkeeping/issues"
   },
   "scripts": {
+    "run:server": "go run ezbookkeeping.go server run",
     "serve": "cross-env NODE_ENV=development vite",
     "build": "cross-env NODE_ENV=production vite build",
     "build:android": "rm -rf dist && pnpm build && npx cap sync && cd ./android && ./gradlew assembleDebug && rm -rf ../output && mkdir -p ../output && cp ./app/build/outputs/apk/debug/app-debug.apk ../output/ezBookKeeping.apk",
@@ -21,6 +22,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
     "@capacitor/core": "^8.0.0",
     "@mdi/js": "^7.4.47",
     "@vuepic/vue-datepicker": "^12.1.0",
