@@ -8,7 +8,7 @@ import { useAccountsStore } from '@/stores/account.ts';
 
 import type { HiddenAmount, NumberWithSuffix } from '@/core/numeral.ts';
 import type { WeekDayValue } from '@/core/datetime.ts';
-import { type AccountCategory, AccountType } from '@/core/account.ts';
+import { AccountCategory, AccountType } from '@/core/account.ts';
 import type { Account, CategorizedAccount } from '@/models/account.ts';
 
 import { isObject, isNumber, isString } from '@/lib/common.ts';
@@ -29,6 +29,9 @@ export function useAccountListPageBase() {
         set: (value) => settingsStore.setShowAccountBalance(value)
     });
 
+    const customAccountCategoryOrder = computed<string>(() => settingsStore.appSettings.accountCategoryOrders);
+    const defaultAccountCategory = computed<AccountCategory>(() => AccountCategory.values(customAccountCategoryOrder.value)[0] ?? AccountCategory.Default);
+
     const firstDayOfWeek = computed<WeekDayValue>(() => userStore.currentUserFirstDayOfWeek);
     const fiscalYearStart = computed<number>(() => userStore.currentUserFiscalYearStart);
     const defaultCurrency = computed<string>(() => userStore.currentUserDefaultCurrency);
@@ -36,6 +39,7 @@ export function useAccountListPageBase() {
     const allAccounts = computed<Account[]>(() => accountsStore.allAccounts);
     const allCategorizedAccountsMap = computed<Record<number, CategorizedAccount>>(() => accountsStore.allCategorizedAccountsMap);
     const allAccountCount = computed<number>(() => accountsStore.allAvailableAccountsCount);
+    const maxCategoryAccountCount = computed<number>(() => accountsStore.maxCategoryAccountCount);
 
     const netAssets = computed<string>(() => {
         const netAssets: number | HiddenAmount | NumberWithSuffix = accountsStore.getNetAssets(showAccountBalance.value);
@@ -90,12 +94,15 @@ export function useAccountListPageBase() {
         displayOrderModified,
         // computed states
         showAccountBalance,
+        customAccountCategoryOrder,
+        defaultAccountCategory,
         firstDayOfWeek,
         fiscalYearStart,
         defaultCurrency,
         allAccounts,
         allCategorizedAccountsMap,
         allAccountCount,
+        maxCategoryAccountCount,
         netAssets,
         totalAssets,
         totalLiabilities,

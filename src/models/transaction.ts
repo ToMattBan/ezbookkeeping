@@ -448,8 +448,8 @@ export class TransactionTagFilter {
         this.type = type;
     }
 
-    public static create(type: TransactionTagFilterType): TransactionTagFilter {
-        return new TransactionTagFilter([], type);
+    public static create(tagIds: string[], type: TransactionTagFilterType): TransactionTagFilter {
+        return new TransactionTagFilter(tagIds, type);
     }
 
     public static of(tagId: string): TransactionTagFilter {
@@ -600,6 +600,7 @@ export interface TransactionListInMonthByPageRequest {
 export interface TransactionAllListRequest {
     readonly startTime: number;
     readonly endTime: number;
+    readonly withPictures?: boolean;
 }
 
 export interface TransactionReconciliationStatementRequest {

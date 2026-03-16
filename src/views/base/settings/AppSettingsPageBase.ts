@@ -46,7 +46,7 @@ export function useAppSettingPageBase() {
         return [
             { name: tt('Disabled'), value: 'disabled' },
             { name: tt('Enabled'), value: 'enabled' },
-            { name: tt('Show Confirmation Every Time'), value: 'confirmation' }
+            { name: tt('Always Show Confirmation'), value: 'confirmation' }
         ];
     });
 
@@ -132,6 +132,14 @@ export function useAppSettingPageBase() {
     const accountsIncludedInTotalDisplayContent = computed<string>(() => {
         const excludeAccountIds = settingsStore.appSettings.totalAmountExcludeAccountIds;
         return getIncludedAccountsDisplayContent(excludeAccountIds, accountsStore.allVisiblePlainAccounts);
+    });
+
+    const accountCategorysDisplayOrderContent = computed<string>(() => {
+        if (!settingsStore.appSettings.accountCategoryOrders) {
+            return tt('Default');
+        }
+
+        return tt('Custom');
     });
 
     const transactionCategoriesIncludedInHomePageOverviewDisplayContent = computed<string>(() => {
@@ -237,6 +245,7 @@ export function useAppSettingPageBase() {
         currencySortByInExchangeRatesPage,
         accountsIncludedInHomePageOverviewDisplayContent,
         accountsIncludedInTotalDisplayContent,
+        accountCategorysDisplayOrderContent,
         transactionCategoriesIncludedInHomePageOverviewDisplayContent
     };
 }

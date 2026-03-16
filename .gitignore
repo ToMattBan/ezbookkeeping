@@ -147,3 +147,17 @@ dist/
 
 # Roo Code
 .roo/
+
+# Binary and build files
+ezbookkeeping
+!**/ezbookkeeping/
+package/
+
+# Environment variable files
+.env
+**/.env
+
+# Other directories
+data/
+storage/
+log/

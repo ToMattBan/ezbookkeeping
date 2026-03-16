@@ -19,10 +19,7 @@ var (
 
 // InitializeExchangeRatesDataSource initializes the current exchange rates data source according to the config
 func InitializeExchangeRatesDataSource(config *settings.Config) error {
-	if config.ExchangeRatesDataSource == settings.ReserveBankOfAustraliaDataSource {
-		Container.current = newCommonHttpExchangeRatesDataProvider(config, &ReserveBankOfAustraliaDataSource{})
-		return nil
-	} else if config.ExchangeRatesDataSource == settings.BankOfCanadaDataSource {
+	if config.ExchangeRatesDataSource == settings.BankOfCanadaDataSource {
 		Container.current = newCommonHttpExchangeRatesDataProvider(config, &BankOfCanadaDataSource{})
 		return nil
 	} else if config.ExchangeRatesDataSource == settings.CzechNationalBankDataSource {
@@ -66,9 +63,6 @@ func InitializeExchangeRatesDataSource(config *settings.Config) error {
 		return nil
 	} else if config.ExchangeRatesDataSource == settings.CentralBankOfUzbekistanDataSource {
 		Container.current = newCommonHttpExchangeRatesDataProvider(config, &CentralBankOfUzbekistanDataSource{})
-		return nil
-	} else if config.ExchangeRatesDataSource == settings.InternationalMonetaryFundDataSource {
-		Container.current = newCommonHttpExchangeRatesDataProvider(config, &InternationalMonetaryFundDataSource{})
 		return nil
 	} else if config.ExchangeRatesDataSource == settings.UserCustomExchangeRatesDataSource {
 		Container.current = newUserCustomExchangeRatesDataProvider()

@@ -5,7 +5,18 @@
                 <div class="d-flex align-center justify-center">
                     <div class="d-flex w-100 align-center">
                         <h4 class="text-h4">{{ tt('Import Transactions') }}</h4>
-                        <v-progress-circular indeterminate size="22" class="ms-2" v-if="loading"></v-progress-circular>
+                        <v-progress-circular indeterminate size="22" class="ms-2" v-if="currentStep !== 'checkData' && loading"></v-progress-circular>
+                        <v-btn density="compact" color="default" variant="text" size="24"
+                               class="ms-2" :icon="true" :disabled="loading"
+                               :loading="loading"
+                               v-if="currentStep === 'checkData'"
+                               @click="reloadBasisData">
+                            <template #loader>
+                                <v-progress-circular indeterminate size="20"/>
+                            </template>
+                            <v-icon :icon="mdiRefresh" size="24" />
+                            <v-tooltip activator="parent">{{ tt('Refresh Accounts, Categories and Tags') }}</v-tooltip>
+                        </v-btn>
                     </div>
                     <v-btn density="comfortable" color="default" variant="text" class="ms-2"
                            :icon="true" :disabled="loading || submitting"
@@ -45,7 +56,7 @@
                             <v-list>
                                 <template :key="groupIndex" v-for="(group, groupIndex) in importTransactionCheckDataTab.filterMenus">
                                     <v-divider class="my-2" v-if="groupIndex > 0" />
-                                    <v-list-subheader :title="group.title" />
+                                    <v-list-subheader :title="group.title" v-if="group.title" />
                                     <v-list-item :key="`menu_${groupIndex}_${index}`"
                                                  :prepend-icon="menu.prependIcon"
                                                  :title="menu.title"
@@ -131,7 +142,7 @@
                                 />
                             </v-col>
 
-                            <v-col cols="12" md="12" v-if="fileType === 'dsv' || fileType === 'dsv_data'">
+                            <v-col cols="12" md="12" v-if="isCustomFileFormat">
                                 <v-select
                                     item-title="displayName"
                                     item-value="type"
@@ -139,10 +150,10 @@
                                     :label="tt('Handling Method')"
                                     :placeholder="tt('Handling Method')"
                                     :items="[
-                                        { displayName: tt('Column Mapping'), type: ImportDSVProcessMethod.ColumnMapping },
-                                        { displayName: tt('Custom Script'), type: ImportDSVProcessMethod.CustomScript }
+                                        { displayName: tt('Column Mapping'), type: ImportCustomFileFormatProcessMethod.ColumnMapping },
+                                        { displayName: tt('Custom Script'), type: ImportCustomFileFormatProcessMethod.CustomScript }
                                      ]"
-                                    v-model="processDSVMethod"
+                                    v-model="processCustomFileFormatMethod"
                                 />
                             </v-col>
 
@@ -199,8 +210,8 @@
                             <v-col cols="12" md="12" v-if="exportFileGuideDocumentUrl">
                                 <a :href="exportFileGuideDocumentUrl" :class="{ 'disabled': submitting }" target="_blank">
                                     <v-icon :icon="mdiHelpCircleOutline" size="16" />
-                                    <span class="ms-1" v-if="fileType === 'dsv' || fileType === 'dsv_data'">{{ tt('How to import this file?') }}</span>
-                                    <span class="ms-1" v-if="fileType !== 'dsv' && fileType !== 'dsv_data'">{{ tt('How to export this file?') }}</span>
+                                    <span class="ms-1" v-if="isCustomFileFormat">{{ tt('How to import this file?') }}</span>
+                                    <span class="ms-1" v-if="!isCustomFileFormat">{{ tt('How to export this file?') }}</span>
                                     <span class="ms-1" v-if="exportFileGuideDocumentLanguageName">[{{ exportFileGuideDocumentLanguageName }}]</span>
                                 </a>
                             </v-col>
@@ -278,6 +289,7 @@ import { ref, computed, useTemplateRef, watch } from 'vue';
 
 import { useI18n } from '@/locales/helpers.ts';
 
+import { useSettingsStore } from '@/stores/setting.ts';
 import { useAccountsStore } from '@/stores/account.ts';
 import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
 import { useTransactionTagsStore } from '@/stores/transactionTag.ts';
@@ -306,6 +318,7 @@ import { generateRandomUUID } from '@/lib/misc.ts';
 import logger from '@/lib/logger.ts';
 
 import {
+    mdiRefresh,
     mdiFilterOutline,
     mdiCheck,
     mdiDotsVertical,
@@ -321,7 +334,7 @@ type ImportTransactionExecuteCustomScriptTabType = InstanceType<typeof ImportTra
 type ImportTransactionCheckDataTabType = InstanceType<typeof ImportTransactionCheckDataTab>;
 
 type ImportTransactionDialogStep = 'uploadFile' | 'defineColumn' | 'executeCustomScript' | 'checkData' | 'finalResult';
-enum ImportDSVProcessMethod {
+enum ImportCustomFileFormatProcessMethod {
     ColumnMapping,
     CustomScript
 };
@@ -339,6 +352,7 @@ const {
     getLocalizedFileEncodingName
 } = useI18n();
 
+const settingsStore = useSettingsStore();
 const accountsStore = useAccountsStore();
 const transactionCategoriesStore = useTransactionCategoriesStore();
 const transactionTagsStore = useTransactionTagsStore();
@@ -386,7 +400,7 @@ const fileSubType = ref<string>('ezbookkeeping_csv');
 const fileEncoding = ref<string>('auto');
 const detectingFileEncoding = ref<boolean>(false);
 const autoDetectedFileEncoding = ref<string | undefined>(undefined);
-const processDSVMethod = ref<ImportDSVProcessMethod>(ImportDSVProcessMethod.ColumnMapping);
+const processCustomFileFormatMethod = ref<ImportCustomFileFormatProcessMethod>(ImportCustomFileFormatProcessMethod.ColumnMapping);
 const importFile = ref<File | null>(null);
 const importData = ref<string>('');
 const importAdditionalOptions = ref<ImportFileTypeSupportedAdditionalOptions>({});
@@ -437,6 +451,7 @@ const allSupportedEncodings = computed<LocalizedImportFileTypeSupportedEncodings
 
     return ret;
 });
+const isCustomFileFormat = computed<boolean>(() => fileType.value === 'dsv' || fileType.value === 'dsv_data' || fileType.value === 'excel');
 const isImportDataFromTextbox = computed<boolean>(() => allSupportedImportFileTypesMap.value[fileType.value]?.dataFromTextbox ?? false);
 const supportedAdditionalOptions = computed<ImportFileTypeSupportedAdditionalOptions | undefined>(() => allSupportedImportFileTypesMap.value[fileType.value]?.supportedAdditionalOptions);
 
@@ -449,8 +464,8 @@ const allSteps = computed<StepBarItem[]>(() => {
         }
     ];
 
-    if (fileType.value === 'dsv' || fileType.value === 'dsv_data') {
-        if (processDSVMethod.value === ImportDSVProcessMethod.CustomScript) {
+    if (isCustomFileFormat.value) {
+        if (processCustomFileFormatMethod.value === ImportCustomFileFormatProcessMethod.CustomScript) {
             steps.push({
                 name: 'executeCustomScript',
                 title: tt('Execute Custom Script'),
@@ -545,13 +560,56 @@ function getDisplayCount(count: number): string {
     return numeralSystem.value.formatNumber(count);
 }
 
+function loadInitFileTypeFromSettings(): void {
+    if (!settingsStore.appSettings.lastSelectedFileTypeInImportTransactionDialog) {
+        return;
+    }
+
+    const lastSelectedFileTypes = settingsStore.appSettings.lastSelectedFileTypeInImportTransactionDialog.split('|');
+    const lastSelectedFileType = lastSelectedFileTypes[0];
+
+    if (!lastSelectedFileType || !allSupportedImportFileTypesMap.value[lastSelectedFileType]) {
+        return;
+    }
+
+    fileType.value = lastSelectedFileType;
+
+    const fileSubTypes = allSupportedImportFileTypesMap.value[lastSelectedFileType].subTypes;
+
+    if (!fileSubTypes || fileSubTypes.length < 1) {
+        return;
+    }
+
+    const lastSelectedFileSubType = lastSelectedFileTypes[1];
+
+    if (lastSelectedFileSubType) {
+        for (const subType of fileSubTypes) {
+            if (subType.type === lastSelectedFileSubType) {
+                fileSubType.value = lastSelectedFileSubType;
+                return;
+            }
+        }
+    }
+
+    const firstFileSubType = fileSubTypes[0];
+
+    if (firstFileSubType) {
+        fileSubType.value = firstFileSubType.type;
+    }
+}
+
 function open(): Promise<void> {
     fileType.value = 'ezbookkeeping';
     fileSubType.value = 'ezbookkeeping_csv';
+
+    if (settingsStore.appSettings.rememberLastSelectedFileTypeInImportTransactionDialog && settingsStore.appSettings.lastSelectedFileTypeInImportTransactionDialog) {
+        loadInitFileTypeFromSettings();
+    }
+
     fileEncoding.value = 'auto';
     detectingFileEncoding.value = false;
     autoDetectedFileEncoding.value = undefined;
-    processDSVMethod.value = ImportDSVProcessMethod.ColumnMapping;
+    processCustomFileFormatMethod.value = ImportCustomFileFormatProcessMethod.ColumnMapping;
     currentStep.value = 'uploadFile';
     importProcess.value = 0;
     importFile.value = null;
@@ -629,6 +687,46 @@ function setImportFile(event: Event): void {
     }
 }
 
+function reloadBasisData(): void {
+    loading.value = true;
+
+    Promise.allSettled([
+        accountsStore.loadAllAccounts({ force: true }),
+        transactionCategoriesStore.loadAllCategories({ force: true }),
+        transactionTagsStore.loadAllTags({ force: true })
+    ]).then(results => {
+        loading.value = false;
+
+        const isAllUpToDate = results.length === 3
+            && results[0].status === 'rejected' && results[0].reason?.isUpToDate
+            && results[1].status === 'rejected' && results[1].reason?.isUpToDate
+            && results[2].status === 'rejected' && results[2].reason?.isUpToDate;
+
+        // show info if all up to date
+        if (isAllUpToDate) {
+            snackbar.value?.showMessage('Data is up to date');
+            return;
+        }
+
+        // show error if any
+        for (const result of results) {
+            if (result.status === 'rejected' && !result.reason?.isUpToDate) {
+                snackbar.value?.showError(result.reason);
+                return;
+            }
+        }
+
+        // show info if one of them updated
+        for (const result of results) {
+            if (result.status === 'fulfilled') {
+                snackbar.value?.showMessage('Data has been updated');
+                importTransactionCheckDataTab.value?.updateAllTransactionsIsValid();
+                return;
+            }
+        }
+    });
+}
+
 function parseData(): void {
     let uploadFile: File;
     let type: string = fileType.value;
@@ -670,6 +768,8 @@ function parseData(): void {
             uploadFile = KnownFileType.CSV.createFile(importData.value, 'import');
         } else if (type === 'custom_tsv') {
             uploadFile = KnownFileType.TSV.createFile(importData.value, 'import');
+        } else if (type === 'custom_ssv') {
+            uploadFile = KnownFileType.TXT.createFile(importData.value, 'import');
         } else {
             snackbar.value?.showError('Parameter Invalid');
             return;
@@ -681,18 +781,16 @@ function parseData(): void {
         return;
     }
 
-    const isDsvFileType: boolean = fileType.value === 'dsv' || fileType.value === 'dsv_data';
-
-    if (isDsvFileType && currentStep.value === 'uploadFile') {
+    if (isCustomFileFormat.value && currentStep.value === 'uploadFile') {
         submitting.value = true;
 
-        transactionsStore.parseImportDsvFile({
+        transactionsStore.parseImportCustomFile({
             fileType: type,
             fileEncoding: encoding,
             importFile: uploadFile
         }).then(response => {
             if (response && response.length) {
-                if (processDSVMethod.value === ImportDSVProcessMethod.CustomScript) {
+                if (processCustomFileFormatMethod.value === ImportCustomFileFormatProcessMethod.CustomScript) {
                     importTransactionExecuteCustomScriptTab.value?.reset();
                     parsedFileData.value = response;
                     currentStep.value = 'executeCustomScript';
@@ -726,7 +824,7 @@ function parseData(): void {
         let geoLocationOrder: string | undefined = undefined;
         let tagSeparator: string | undefined = undefined;
 
-        if (isDsvFileType && processDSVMethod.value === ImportDSVProcessMethod.ColumnMapping) {
+        if (isCustomFileFormat.value && processCustomFileFormatMethod.value === ImportCustomFileFormatProcessMethod.ColumnMapping) {
             const defineColumnResult = importTransactionDefineColumnTab.value?.generateResult();
 
             if (!defineColumnResult) {
@@ -743,7 +841,7 @@ function parseData(): void {
             geoLocationSeparator = defineColumnResult.geoLocationSeparator;
             geoLocationOrder = defineColumnResult.geoLocationOrder;
             tagSeparator = defineColumnResult.tagSeparator;
-        } else if (isDsvFileType && processDSVMethod.value === ImportDSVProcessMethod.CustomScript) {
+        } else if (isCustomFileFormat.value && processCustomFileFormatMethod.value === ImportCustomFileFormatProcessMethod.CustomScript) {
             const executeCustomScriptResult = importTransactionExecuteCustomScriptTab.value?.generateResult();
 
             if (!executeCustomScriptResult) {
@@ -912,9 +1010,19 @@ function close(completed: boolean): void {
     showState.value = false;
 }
 
-watch(fileType, () => {
-    if (allFileSubTypes.value && allFileSubTypes.value.length) {
-        fileSubType.value = allFileSubTypes.value[0]!.type;
+watch(fileType, (newValue) => {
+    const subFileTypes = allSupportedImportFileTypesMap.value[newValue]?.subTypes;
+
+    if (subFileTypes && subFileTypes.length) {
+        if (fileSubType.value !== subFileTypes[0]!.type) {
+            fileSubType.value = subFileTypes[0]!.type;
+        } else if (settingsStore.appSettings.rememberLastSelectedFileTypeInImportTransactionDialog && !loading.value) {
+            settingsStore.setLastSelectedFileTypeInImportTransactionDialog(`${newValue}|${fileSubType.value}`);
+        }
+    } else {
+        if (settingsStore.appSettings.rememberLastSelectedFileTypeInImportTransactionDialog && !loading.value) {
+            settingsStore.setLastSelectedFileTypeInImportTransactionDialog(`${newValue}|`);
+        }
     }
 
     importFile.value = null;
@@ -924,6 +1032,10 @@ watch(fileType, () => {
 });
 
 watch(fileSubType, (newValue) => {
+    if (settingsStore.appSettings.rememberLastSelectedFileTypeInImportTransactionDialog && !loading.value) {
+        settingsStore.setLastSelectedFileTypeInImportTransactionDialog(`${fileType.value}|${newValue}`);
+    }
+
     let supportedExtensions: string | undefined = findExtensionByType(allFileSubTypes.value, newValue);
 
     if (!supportedExtensions) {

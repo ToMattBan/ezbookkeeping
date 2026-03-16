@@ -1,12 +1,15 @@
 <template>
     <f7-page :ptr="!sortable" @ptr:refresh="reload" @page:afterin="onPageAfterIn">
         <f7-navbar>
-            <f7-nav-left :back-link="tt('Back')"></f7-nav-left>
+            <f7-nav-left :class="{ 'disabled': loading }" :back-link="tt('Back')" v-if="!sortable"></f7-nav-left>
+            <f7-nav-left v-else-if="sortable">
+                <f7-link icon-f7="xmark" :class="{ 'disabled': displayOrderSaving }" @click="cancelSort"></f7-link>
+            </f7-nav-left>
             <f7-nav-title :title="tt('Account List')"></f7-nav-title>
-            <f7-nav-right class="navbar-compact-icons">
-                <f7-link icon-f7="ellipsis" :class="{ 'disabled': !allAccountCount }" v-if="!sortable" @click="showMoreActionSheet = true"></f7-link>
+            <f7-nav-right :class="{ 'navbar-compact-icons': true, 'disabled': loading }">
+                <f7-link icon-f7="ellipsis" :class="{ 'disabled': !allAccountCount || sortable }" @click="showMoreActionSheet = true"></f7-link>
                 <f7-link icon-f7="plus" href="/account/add" v-if="!sortable"></f7-link>
-                <f7-link :text="tt('Done')" :class="{ 'disabled': displayOrderSaving }" @click="saveSortResult" v-else-if="sortable"></f7-link>
+                <f7-link icon-f7="checkmark_alt" :class="{ 'disabled': displayOrderSaving || !displayOrderModified }" @click="saveSortResult" v-else-if="sortable"></f7-link>
             </f7-nav-right>
         </f7-navbar>
 
@@ -68,7 +71,7 @@
         </f7-list>
 
         <div :key="accountCategory.type"
-             v-for="accountCategory in AccountCategory.values()"
+             v-for="accountCategory in AccountCategory.values(customAccountCategoryOrder)"
              v-show="!loading && ((showHidden && hasAccount(accountCategory, false)) || hasAccount(accountCategory, true))">
             <f7-list strong inset dividers sortable class="list-has-group-title account-list margin-vertical"
                      :sortable-enabled="sortable"
@@ -183,7 +186,7 @@
 
         <f7-actions close-by-outside-click close-on-escape :opened="showMoreActionSheet" @actions:closed="showMoreActionSheet = false">
             <f7-actions-group>
-                <f7-actions-button @click="setSortable()">{{ tt('Sort') }}</f7-actions-button>
+                <f7-actions-button :class="{ 'disabled': maxCategoryAccountCount < 2 }" @click="setSortable()">{{ tt('Sort') }}</f7-actions-button>
                 <f7-actions-button v-if="!showHidden" @click="showHidden = true">{{ tt('Show Hidden Accounts') }}</f7-actions-button>
                 <f7-actions-button v-if="showHidden" @click="showHidden = false">{{ tt('Hide Hidden Accounts') }}</f7-actions-button>
             </f7-actions-group>
@@ -246,8 +249,10 @@ const {
     showHidden,
     displayOrderModified,
     showAccountBalance,
+    customAccountCategoryOrder,
     allCategorizedAccountsMap,
     allAccountCount,
+    maxCategoryAccountCount,
     netAssets,
     totalAssets,
     totalLiabilities,
@@ -407,7 +412,7 @@ function clearAllTransactions(password: string): void {
         hideLoading();
 
         showInputPasswordSheetForClearAllTransactions.value = false;
-        showToast('All transactions in this account has been cleared');
+        showToast('All transactions in this account have been cleared');
     }).catch(error => {
         clearingData.value = false;
         hideLoading();
@@ -488,6 +493,35 @@ function saveSortResult(): void {
     showLoading();
 
     accountsStore.updateAccountDisplayOrders().then(() => {
+        displayOrderSaving.value = false;
+        hideLoading();
+
+        showHidden.value = false;
+        sortable.value = false;
+        displayOrderModified.value = false;
+    }).catch(error => {
+        displayOrderSaving.value = false;
+        hideLoading();
+
+        if (!error.processed) {
+            showToast(error.message || error);
+        }
+    });
+}
+
+function cancelSort(): void {
+    if (!displayOrderModified.value) {
+        showHidden.value = false;
+        sortable.value = false;
+        return;
+    }
+
+    displayOrderSaving.value = true;
+    showLoading();
+
+    accountsStore.loadAllAccounts({
+        force: false
+    }).then(() => {
         displayOrderSaving.value = false;
         hideLoading();
 

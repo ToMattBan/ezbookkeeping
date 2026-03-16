@@ -17,6 +17,7 @@ export const AMAP_JAVASCRIPT_URL: string = 'https://webapi.amap.com/maps?v=2.0';
 export enum KnownErrorCode {
     ApiNotFound = 100001,
     ValidatorError = 200000,
+    NothingWillBeUpdated = 200004,
     UserEmailNotVerified = 201020,
     TwoFactorAuthorizationPasscodeEmpty = 203005,
     TransactionCannotCreateInThisTime = 205017,
@@ -77,7 +78,7 @@ export const SPECIFIED_API_NOT_FOUND_ERRORS: Record<string, SpecifiedApiError> =
     '/api/v1/users/2fa/recovery/regenerate.json': {
         message: 'Two-factor authentication is disabled'
     },
-    '/api/v1/transactions/parse_dsv_file.json': {
+    '/api/v1/transactions/parse_custom_file.json': {
         message: 'Transaction importing is disabled'
     },
     '/api/v1/transactions/parse_import.json': {

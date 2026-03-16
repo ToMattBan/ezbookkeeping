@@ -5,7 +5,9 @@ import (
 	"github.com/mayswind/ezbookkeeping/pkg/errs"
 	"github.com/mayswind/ezbookkeeping/pkg/llm/data"
 	"github.com/mayswind/ezbookkeeping/pkg/llm/provider"
+	"github.com/mayswind/ezbookkeeping/pkg/llm/provider/anthropic"
 	"github.com/mayswind/ezbookkeeping/pkg/llm/provider/googleai"
+	"github.com/mayswind/ezbookkeeping/pkg/llm/provider/lmstudio"
 	"github.com/mayswind/ezbookkeeping/pkg/llm/provider/ollama"
 	"github.com/mayswind/ezbookkeeping/pkg/llm/provider/openai"
 	"github.com/mayswind/ezbookkeeping/pkg/settings"
@@ -26,7 +28,7 @@ func InitializeLargeLanguageModelProvider(config *settings.Config) error {
 	var err error = nil
 
 	if config.ReceiptImageRecognitionLLMConfig != nil {
-		Container.receiptImageRecognitionCurrentProvider, err = initializeLargeLanguageModelProvider(config.ReceiptImageRecognitionLLMConfig)
+		Container.receiptImageRecognitionCurrentProvider, err = initializeLargeLanguageModelProvider(config.ReceiptImageRecognitionLLMConfig, config.EnableDebugLog)
 
 		if err != nil {
 			return err
@@ -36,17 +38,23 @@ func InitializeLargeLanguageModelProvider(config *settings.Config) error {
 	return nil
 }
 
-func initializeLargeLanguageModelProvider(llmConfig *settings.LLMConfig) (provider.LargeLanguageModelProvider, error) {
+func initializeLargeLanguageModelProvider(llmConfig *settings.LLMConfig, enableResponseLog bool) (provider.LargeLanguageModelProvider, error) {
 	if llmConfig.LLMProvider == settings.OpenAILLMProvider {
-		return openai.NewOpenAILargeLanguageModelProvider(llmConfig), nil
+		return openai.NewOpenAILargeLanguageModelProvider(llmConfig, enableResponseLog), nil
 	} else if llmConfig.LLMProvider == settings.OpenAICompatibleLLMProvider {
-		return openai.NewOpenAICompatibleLargeLanguageModelProvider(llmConfig), nil
+		return openai.NewOpenAICompatibleLargeLanguageModelProvider(llmConfig, enableResponseLog), nil
+	} else if llmConfig.LLMProvider == settings.AnthropicLLMProvider {
+		return anthropic.NewAnthropicLargeLanguageModelProvider(llmConfig, enableResponseLog), nil
+	} else if llmConfig.LLMProvider == settings.AnthropicCompatibleLLMProvider {
+		return anthropic.NewAnthropicCompatibleLargeLanguageModelProvider(llmConfig, enableResponseLog), nil
 	} else if llmConfig.LLMProvider == settings.OpenRouterLLMProvider {
-		return openai.NewOpenRouterLargeLanguageModelProvider(llmConfig), nil
+		return openai.NewOpenRouterLargeLanguageModelProvider(llmConfig, enableResponseLog), nil
 	} else if llmConfig.LLMProvider == settings.OllamaLLMProvider {
-		return ollama.NewOllamaLargeLanguageModelProvider(llmConfig), nil
+		return ollama.NewOllamaLargeLanguageModelProvider(llmConfig, enableResponseLog), nil
+	} else if llmConfig.LLMProvider == settings.LMStudioLLMProvider {
+		return lmstudio.NewLMStudioLargeLanguageModelProvider(llmConfig, enableResponseLog), nil
 	} else if llmConfig.LLMProvider == settings.GoogleAILLMProvider {
-		return googleai.NewGoogleAILargeLanguageModelProvider(llmConfig), nil
+		return googleai.NewGoogleAILargeLanguageModelProvider(llmConfig, enableResponseLog), nil
 	} else if llmConfig.LLMProvider == "" {
 		return nil, nil
 	}

@@ -1,6 +1,7 @@
 import { type WeekDayValue, WeekDay } from './datetime.ts';
 import { TimezoneTypeForStatistics } from './timezone.ts';
 import { CurrencySortingType } from './currency.ts';
+import { TransactionQuickAddButtonActionType } from './transaction.ts';
 import {
     CategoricalChartType,
     TrendChartType,
@@ -10,7 +11,7 @@ import {
     DEFAULT_TREND_CHART_DATA_RANGE,
     DEFAULT_ASSET_TRENDS_CHART_DATA_RANGE
 } from './statistics.ts';
-import { DEFAULT_TRANSACTION_EXPLORE_DATE_RANGE } from './explore.ts';
+import { DEFAULT_TRANSACTION_EXPLORER_DATE_RANGE } from './explorer.ts';
 import { DEFAULT_CURRENCY_CODE } from '@/consts/currency.ts';
 
 export type ApplicationSettingKey = string;
@@ -43,6 +44,7 @@ export interface ApplicationSettings extends BaseApplicationSetting {
     overviewAccountFilterInHomePage: Record<string, boolean>;
     overviewTransactionCategoryFilterInHomePage: Record<string, boolean>;
     // Transaction List Page
+    quickAddButtonActionInMobileTransactionEditPage: number;
     itemsCountInTransactionListPage: number;
     showTotalAmountInTransactionListPage: boolean;
     showTagInTransactionListPage: boolean;
@@ -50,13 +52,21 @@ export interface ApplicationSettings extends BaseApplicationSetting {
     autoSaveTransactionDraft: string;
     autoGetCurrentGeoLocation: boolean;
     alwaysShowTransactionPicturesInMobileTransactionEditPage: boolean;
-    // Insights & Explore Page
-    insightsExploreDefaultDateRangeType: number;
-    timezoneUsedForInsightsExplorePage: number;
+    // Import Transaction Dialog
+    rememberLastSelectedFileTypeInImportTransactionDialog: boolean;
+    lastSelectedFileTypeInImportTransactionDialog: string;
+    // Insights Explorer Page
+    insightsExplorerDefaultDateRangeType: number;
+    showTagInInsightsExplorerPage: boolean;
     // Account List Page
     totalAmountExcludeAccountIds: Record<string, boolean>;
+    accountCategoryOrders: string;
+    hideCategoriesWithoutAccounts: boolean;
     // Exchange Rates Data Page
     currencySortByInExchangeRatesPage: number;
+    // Browser Cache Management
+    mapCacheExpiration: number,
+    exchangeRatesDataCacheExpiration: number,
     // Statistics Settings
     statistics: {
         defaultChartDataType: number;
@@ -102,6 +112,9 @@ export interface WebAuthnConfig {
 export const ALL_ALLOWED_CLOUD_SYNC_APP_SETTING_KEY_TYPES: Record<string, UserApplicationCloudSettingType> = {
     // Basic Settings
     'showAccountBalance': UserApplicationCloudSettingType.Boolean,
+    'autoUpdateExchangeRatesData': UserApplicationCloudSettingType.Boolean,
+    // Navigation Bar
+    'showAddTransactionButtonInDesktopNavbar': UserApplicationCloudSettingType.Boolean,
     // Overview Page
     'showAmountInHomePage': UserApplicationCloudSettingType.Boolean,
     'timezoneUsedForStatisticsInHomePage': UserApplicationCloudSettingType.Number,
@@ -112,16 +125,25 @@ export const ALL_ALLOWED_CLOUD_SYNC_APP_SETTING_KEY_TYPES: Record<string, UserAp
     'showTotalAmountInTransactionListPage': UserApplicationCloudSettingType.Boolean,
     'showTagInTransactionListPage': UserApplicationCloudSettingType.Boolean,
     // Transaction Edit Page
+    'quickAddButtonActionInMobileTransactionEditPage': UserApplicationCloudSettingType.Number,
     'autoSaveTransactionDraft': UserApplicationCloudSettingType.String,
     'autoGetCurrentGeoLocation': UserApplicationCloudSettingType.Boolean,
     'alwaysShowTransactionPicturesInMobileTransactionEditPage': UserApplicationCloudSettingType.Boolean,
-    // Insights & Explore Page
-    'insightsExploreDefaultDateRangeType': UserApplicationCloudSettingType.Number,
-    'timezoneUsedForInsightsExplorePage': UserApplicationCloudSettingType.Number,
+    // Import Transaction Dialog
+    'rememberLastSelectedFileTypeInImportTransactionDialog': UserApplicationCloudSettingType.Boolean,
+    'lastSelectedFileTypeInImportTransactionDialog': UserApplicationCloudSettingType.String,
+    // Insights Explorer Page
+    'insightsExplorerDefaultDateRangeType': UserApplicationCloudSettingType.Number,
+    'showTagInInsightsExplorerPage': UserApplicationCloudSettingType.Boolean,
     // Account List Page
     'totalAmountExcludeAccountIds': UserApplicationCloudSettingType.StringBooleanMap,
+    'accountCategoryOrders': UserApplicationCloudSettingType.String,
+    'hideCategoriesWithoutAccounts': UserApplicationCloudSettingType.Boolean,
     // Exchange Rates Data Page
     'currencySortByInExchangeRatesPage': UserApplicationCloudSettingType.Number,
+    // Browser Cache Management
+    'mapCacheExpiration': UserApplicationCloudSettingType.Number,
+    'exchangeRatesDataCacheExpiration': UserApplicationCloudSettingType.Number,
     // Statistics Settings
     'statistics.defaultChartDataType': UserApplicationCloudSettingType.Number,
     'statistics.defaultTimezoneType': UserApplicationCloudSettingType.Number,
@@ -162,16 +184,25 @@ export const DEFAULT_APPLICATION_SETTINGS: ApplicationSettings = {
     showTotalAmountInTransactionListPage: true,
     showTagInTransactionListPage: true,
     // Transaction Edit Page
+    quickAddButtonActionInMobileTransactionEditPage: TransactionQuickAddButtonActionType.Default.type,
     autoSaveTransactionDraft: 'disabled',
     autoGetCurrentGeoLocation: false,
     alwaysShowTransactionPicturesInMobileTransactionEditPage: false,
-    // Insights & Explore Page
-    insightsExploreDefaultDateRangeType: DEFAULT_TRANSACTION_EXPLORE_DATE_RANGE.type,
-    timezoneUsedForInsightsExplorePage: TimezoneTypeForStatistics.Default.type,
+    // Import Transaction Dialog
+    rememberLastSelectedFileTypeInImportTransactionDialog: true,
+    lastSelectedFileTypeInImportTransactionDialog: '',
+    // Insights Explorer Page
+    insightsExplorerDefaultDateRangeType: DEFAULT_TRANSACTION_EXPLORER_DATE_RANGE.type,
+    showTagInInsightsExplorerPage: true,
     // Account List Page
     totalAmountExcludeAccountIds: {},
+    accountCategoryOrders: '',
+    hideCategoriesWithoutAccounts: false,
     // Exchange Rates Data Page
     currencySortByInExchangeRatesPage: CurrencySortingType.Default.type,
+    // Browser Cache Management
+    mapCacheExpiration: -1,
+    exchangeRatesDataCacheExpiration: 0,
     // Statistics Settings
     statistics: {
         defaultChartDataType: ChartDataType.Default.type,

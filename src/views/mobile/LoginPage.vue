@@ -17,7 +17,7 @@
                 :disabled="loggingInByPassword || loggingInByOAuth2"
                 :label="tt('Username')"
                 :placeholder="tt('Your username or email')"
-                v-model:value="username"
+                v-model:value.trim="username"
                 @input="tempToken = ''"
             ></f7-list-input>
             <f7-list-input
@@ -93,31 +93,27 @@
             :opened="show2faSheet" @sheet:closed="show2faSheet = false"
         >
             <f7-page-content>
-                <div class="display-flex padding justify-content-space-between align-items-center">
+                <div class="display-flex padding-horizontal padding-top justify-content-space-between align-items-center">
                     <div class="ebk-sheet-title"><b>{{ tt('Two-Factor Authentication') }}</b></div>
                 </div>
                 <div class="padding-horizontal padding-bottom">
-                    <f7-list strong class="no-margin">
+                    <f7-list class="no-margin">
                         <f7-list-input
                             type="number"
                             autocomplete="one-time-code"
                             outline
-                            floating-label
                             clear-button
                             class="no-margin no-padding-bottom"
                             v-if="twoFAVerifyType === 'passcode'"
-                            :label="tt('Passcode')"
                             :placeholder="tt('Passcode')"
                             v-model:value="passcode"
                             @keyup.enter="verify"
                         ></f7-list-input>
                         <f7-list-input
                             outline
-                            floating-label
                             clear-button
                             class="no-margin no-padding-bottom"
                             v-if="twoFAVerifyType === 'backupcode'"
-                            :label="tt('Backup Code')"
                             :placeholder="tt('Backup Code')"
                             v-model:value="backupCode"
                             @keyup.enter="verify"
@@ -144,15 +140,13 @@
                     <p class="no-margin">
                         <span>{{ tt('Please enter your email address used for registration and we\'ll send you an email with a reset password link') }}</span>
                     </p>
-                    <f7-list strong class="no-margin">
+                    <f7-list class="no-margin">
                         <f7-list-input
                             type="email"
                             autocomplete="email"
                             outline
-                            floating-label
                             clear-button
                             class="no-margin no-padding-bottom"
-                            :label="tt('E-mail')"
                             :placeholder="tt('Your email address')"
                             v-model:value="forgetPasswordEmail"
                             @keyup.enter="requestResetPassword"
@@ -432,6 +426,7 @@ oauth2ClientSessionId.value = generateRandomUUID();
 .login-divider > .item-content {
     width: 100%;
     min-height: 0;
+    white-space: nowrap;
 
     > .item-inner {
         padding-top: 0;

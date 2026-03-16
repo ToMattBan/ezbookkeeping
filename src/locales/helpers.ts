@@ -1,7 +1,13 @@
 import { useI18n as useVueI18n } from 'vue-i18n';
 import moment from 'moment-timezone';
 
-import type { NameValue, TypeAndName, TypeAndDisplayName, LocalizedSwitchOption } from '@/core/base.ts';
+import {
+    type NameValue,
+    type TypeAndName,
+    type TypeAndNameWithAlternativeName,
+    type TypeAndDisplayName,
+    type LocalizedSwitchOption
+} from '@/core/base.ts';
 
 import {
     type LanguageInfo,
@@ -61,6 +67,7 @@ import {
     ShortDateFormat,
     LongTimeFormat,
     ShortTimeFormat,
+    DateFormatOrder,
     DateRange,
     DateRangeScene,
     LANGUAGE_DEFAULT_DATE_TIME_FORMAT_VALUE
@@ -121,7 +128,8 @@ import {
 } from '@/core/category.ts';
 
 import {
-    TransactionEditScopeType
+    TransactionEditScopeType,
+    TransactionQuickAddButtonActionType
 } from '@/core/transaction.ts';
 
 import {
@@ -143,12 +151,12 @@ import {
 } from '@/core/statistics.ts';
 
 import {
-    TransactionExploreConditionField,
-    TransactionExploreConditionOperator,
-    TransactionExploreDataDimension,
-    TransactionExploreValueMetric,
-    TransactionExploreChartType
-} from '@/core/explore.ts';
+    TransactionExplorerConditionField,
+    TransactionExplorerConditionOperator,
+    TransactionExplorerDataDimension,
+    TransactionExplorerValueMetric,
+    TransactionExplorerChartType
+} from '@/core/explorer.ts';
 
 import {
     type LocalizedImportFileCategoryAndTypes,
@@ -549,13 +557,19 @@ export function useI18n() {
         return ret;
     }
 
-    function getLocalizedDisplayNameAndType(typeAndNames: TypeAndName[]): TypeAndDisplayName[] {
+    function getLocalizedDisplayNameAndType(typeAndNames: TypeAndName[] | TypeAndNameWithAlternativeName[], useAlternativeName?: boolean): TypeAndDisplayName[] {
         const ret: TypeAndDisplayName[] = [];
 
         for (const typeAndName of typeAndNames) {
+            let name: string = typeAndName.name;
+
+            if (useAlternativeName && 'alternativeName' in typeAndName && typeAndName.alternativeName) {
+                name = typeAndName.alternativeName;
+            }
+
             ret.push({
                 type: typeAndName.type,
-                displayName: t(typeAndName.name)
+                displayName: t(name)
             });
         }
 
@@ -661,7 +675,7 @@ export function useI18n() {
 
     function getLocalizedDateTimeFormat<T extends DateFormat | TimeFormat>(type: string, allFormatMap: Record<string, T>, allFormatArray: T[], formatTypeValue: number, languageDefaultTypeNameKey: string, systemDefaultFormatType: T): string {
         const formatType = getLocalizedDateTimeType(allFormatMap, allFormatArray, formatTypeValue, languageDefaultTypeNameKey, systemDefaultFormatType);
-        return t(`format.${type}.${formatType.key}`);
+        return t(`format.${type}.${formatType.typeName}`);
     }
 
     function getLocalizedLongDateFormat(): string {
@@ -785,10 +799,12 @@ export function useI18n() {
     }
 
     function formatYearQuarter(year: string, quarter: number): string {
-        if (1 <= quarter && quarter <= 4) {
-            return t('format.yearQuarter.q' + quarter, {
+        const quarterName = getQuarterName(quarter);
+
+        if (quarterName) {
+            return t('format.yearQuarter.content', {
                 year: year,
-                quarter: quarter
+                quarter: getQuarterName(quarter)
             });
         } else {
             return '';
@@ -1076,7 +1092,7 @@ export function useI18n() {
         });
 
         for (const formatType of allFormatArray) {
-            const format = t(`format.${type}.${formatType.key}`);
+            const format = t(`format.${type}.${formatType.typeName}`);
 
             ret.push({
                 type: formatType.type,
@@ -1347,9 +1363,9 @@ export function useI18n() {
         return ret;
     }
 
-    function getAllAccountCategories(): LocalizedAccountCategory[] {
+    function getAllAccountCategories(customAccountCategoryOrder: string): LocalizedAccountCategory[] {
         const ret: LocalizedAccountCategory[] = [];
-        const allCategories = AccountCategory.values();
+        const allCategories = AccountCategory.values(customAccountCategoryOrder);
 
         for (const accountCategory of allCategories) {
             ret.push({
@@ -1590,6 +1606,14 @@ export function useI18n() {
         return t(`datetime.${weekDay.name}.long`);
     }
 
+    function getQuarterName(quarter: number): string {
+        if (1 <= quarter && quarter <= 4) {
+            return t('datetime.quarter.q' + quarter);
+        } else {
+            return '';
+        }
+    }
+
     function getMultiMonthdayShortNames(monthDays: number[]): string {
         if (!monthDays) {
             return '';
@@ -1750,12 +1774,22 @@ export function useI18n() {
         return t(`currency.name.${currencyCode}`);
     }
 
+    function getLongDateFormatOrder(): DateFormatOrder {
+        return getLocalizedDateTimeType(LongDateFormat.all(), LongDateFormat.values(), userStore.currentUserLongDateFormat, 'longDateFormat', LongDateFormat.Default).order;
+    }
+
+    function getShortDateFormatOrder(): DateFormatOrder {
+        return getLocalizedDateTimeType(ShortDateFormat.all(), ShortDateFormat.values(), userStore.currentUserShortDateFormat, 'shortDateFormat', ShortDateFormat.Default).order;
+    }
+
     function isLongDateMonthAfterYear(): boolean {
-        return getLocalizedDateTimeType(LongDateFormat.all(), LongDateFormat.values(), userStore.currentUserLongDateFormat, 'longDateFormat', LongDateFormat.Default).isMonthAfterYear;
+        const order: DateFormatOrder = getLongDateFormatOrder();
+        return order === DateFormatOrder.YMD;
     }
 
     function isShortDateMonthAfterYear(): boolean {
-        return getLocalizedDateTimeType(ShortDateFormat.all(), ShortDateFormat.values(), userStore.currentUserShortDateFormat, 'shortDateFormat', ShortDateFormat.Default).isMonthAfterYear;
+        const order: DateFormatOrder = getShortDateFormatOrder();
+        return order === DateFormatOrder.YMD;
     }
 
     function isLongTime24HourFormat(): boolean {
@@ -1795,7 +1829,7 @@ export function useI18n() {
     function formatDateTimeToGregorianLikeYearQuarter(dateTime: DateTime): string {
         const gregorianLikeCalendarType = getGregorianLikeCalendarType();
         const dateTimeFormatOptions = getDateTimeFormatOptions({ calendarType: gregorianLikeCalendarType });
-        const year = dateTime.getLocalizedCalendarYear(dateTimeFormatOptions);
+        const year = formatDateTime(dateTime, getLocalizedShortYearFormat(), dateTimeFormatOptions);
         const quarter = dateTime.getLocalizedCalendarQuarter(dateTimeFormatOptions);
         return formatYearQuarter(year, quarter);
     }
@@ -2067,6 +2101,31 @@ export function useI18n() {
         return formatPercent(value, precision, lowPrecisionValue, numberFormatOptions);
     }
 
+    function getFormattedVolume(value: number, precision?: number, unit?: 'KiB' | 'MiB'): string {
+        const numberFormatOptions = getNumberFormatOptions({});
+        let displayUnit = unit || 'B';
+
+        if (unit === 'KiB') {
+            value = value / 1024.0;
+        } else if (unit === 'MiB') {
+            value = value / 1024.0 / 1024.0;
+        } else {
+            displayUnit = 'B';
+
+            if (value >= 1024.0) {
+                value = value / 1024.0;
+                displayUnit = 'KiB';
+            }
+
+            if (value >= 1024.0) {
+                value = value / 1024.0;
+                displayUnit = 'MiB';
+            }
+        }
+
+        return formatNumber(value, numberFormatOptions, precision) + ' ' + displayUnit;
+    }
+
     function getFormattedExchangeRateAmount(value: number, numeralSystem?: NumeralSystem): string {
         const numberFormatOptions = getNumberFormatOptions({ numeralSystem });
         return formatExchangeRateAmount(value, numberFormatOptions);
@@ -2084,10 +2143,10 @@ export function useI18n() {
         return getAmountPrependAndAppendCurrencySymbol(currencyDisplayType, currencyCode, currencyUnit, currencyName, isPlural);
     }
 
-    function getCategorizedAccountsWithDisplayBalance(allVisibleAccounts: Account[], showAccountBalance: boolean): CategorizedAccountWithDisplayBalance[] {
+    function getCategorizedAccountsWithDisplayBalance(allVisibleAccounts: Account[], showAccountBalance: boolean, customAccountCategoryOrder: string): CategorizedAccountWithDisplayBalance[] {
         const ret: CategorizedAccountWithDisplayBalance[] = [];
         const defaultCurrency = userStore.currentUserDefaultCurrency;
-        const allCategories = AccountCategory.values();
+        const allCategories = AccountCategory.values(customAccountCategoryOrder);
         const categorizedAccounts: Record<number, CategorizedAccount> = getCategorizedAccountsMap(Account.cloneAccounts(allVisibleAccounts));
 
         for (const category of allCategories) {
@@ -2118,7 +2177,8 @@ export function useI18n() {
             let finalTotalBalance = '';
 
             if (showAccountBalance) {
-                const accountsBalance = getAllFilteredAccountsBalance(categorizedAccounts, account => account.category === accountCategory.category);
+                const accountsBalance = getAllFilteredAccountsBalance(categorizedAccounts, customAccountCategoryOrder,
+                        account => account.category === accountCategory.category);
                 let totalBalance = 0;
                 let hasUnCalculatedAmount = false;
 
@@ -2370,20 +2430,21 @@ export function useI18n() {
         getAllTrendChartTypes: () => getLocalizedDisplayNameAndType(TrendChartType.values()),
         getAllAccountBalanceTrendChartTypes: () => getLocalizedDisplayNameAndType(AccountBalanceTrendChartType.values()),
         getAllStatisticsChartDataTypes: (analysisType: StatisticsAnalysisType, withDesktopOnlyChart?: boolean) => getLocalizedDisplayNameAndType(ChartDataType.values(analysisType, withDesktopOnlyChart)),
-        getAllStatisticsSortingTypes: () => getLocalizedDisplayNameAndType(ChartSortingType.values()),
+        getAllStatisticsSortingTypes: (useAlternativeName?: boolean) => getLocalizedDisplayNameAndType(ChartSortingType.values(), useAlternativeName),
         getAllStatisticsDateAggregationTypes: (analysisType: StatisticsAnalysisType) => getLocalizedChartDateAggregationTypeAndDisplayName(analysisType, true),
         getAllStatisticsDateAggregationTypesWithShortName: (analysisType: StatisticsAnalysisType) => getLocalizedChartDateAggregationTypeAndDisplayName(analysisType, false),
         getAllTransactionEditScopeTypes: () => getLocalizedDisplayNameAndType(TransactionEditScopeType.values()),
+        getAllTransactionQuickAddButtonActionTypes: () => getLocalizedDisplayNameAndType(TransactionQuickAddButtonActionType.values()),
         getAllTransactionScheduledFrequencyTypes: () => getLocalizedDisplayNameAndType(ScheduledTemplateFrequencyType.values()),
         getAllImportTransactionColumnTypes: () => getLocalizedDisplayNameAndType(ImportTransactionColumnType.values()),
         getAllTransactionDefaultCategories,
         getAllDisplayExchangeRates,
         getAllSupportedImportFileCagtegoryAndTypes,
-        getAllTransactionExploreConditionFields: () => getLocalizedNameValue(TransactionExploreConditionField.values()),
-        getAllTransactionExploreConditionOperators: (operators?: TransactionExploreConditionOperator[]) => getLocalizedNameValue(operators ?? TransactionExploreConditionOperator.values()),
-        getAllTransactionExploreDataDimensions: (operators?: TransactionExploreDataDimension[]) => getLocalizedNameValue(operators ?? TransactionExploreDataDimension.values()),
-        getAllTransactionExploreValueMetrics: (operators?: TransactionExploreValueMetric[]) => getLocalizedNameValue(operators ?? TransactionExploreValueMetric.values()),
-        getAllTransactionExploreChartTypes: (operators?: TransactionExploreChartType[]) => getLocalizedNameValue(operators ?? TransactionExploreChartType.values()),
+        getAllTransactionExplorerConditionFields: () => getLocalizedNameValue(TransactionExplorerConditionField.values()),
+        getAllTransactionExplorerConditionOperators: (operators?: TransactionExplorerConditionOperator[]) => getLocalizedNameValue(operators ?? TransactionExplorerConditionOperator.values()),
+        getAllTransactionExplorerDataDimensions: (operators?: TransactionExplorerDataDimension[]) => getLocalizedNameValue(operators ?? TransactionExplorerDataDimension.values()),
+        getAllTransactionExplorerValueMetrics: (operators?: TransactionExplorerValueMetric[]) => getLocalizedNameValue(operators ?? TransactionExplorerValueMetric.values()),
+        getAllTransactionExplorerChartTypes: (operators?: TransactionExplorerChartType[]) => getLocalizedNameValue(operators ?? TransactionExplorerChartType.values()),
         // get localized info
         getLanguageInfo,
         getMonthShortName,
@@ -2392,6 +2453,7 @@ export function useI18n() {
         getMonthdayShortName,
         getWeekdayShortName,
         getWeekdayLongName,
+        getQuarterName,
         getMultiMonthdayShortNames,
         getMultiWeekdayLongNames,
         getAllLocalizedDigits,
@@ -2410,6 +2472,8 @@ export function useI18n() {
         getCurrentDigitGroupingType,
         getCurrentFiscalYearFormatType,
         getCurrencyName,
+        getLongDateFormatOrder,
+        getShortDateFormatOrder,
         isLongDateMonthAfterYear,
         isShortDateMonthAfterYear,
         isLongTime24HourFormat,
@@ -2468,6 +2532,7 @@ export function useI18n() {
         formatNumberToWesternArabicNumerals: (value: number, precision?: number) => getFormattedNumber(value, NumeralSystem.WesternArabicNumerals, precision),
         formatPercentToLocalizedNumerals: (value: number, precision: number, lowPrecisionValue: string) => getFormattedPercentValue(value, precision, lowPrecisionValue),
         formatPercentToWesternArabicNumerals: (value: number, precision: number, lowPrecisionValue: string) => getFormattedPercentValue(value, precision, lowPrecisionValue, NumeralSystem.WesternArabicNumerals),
+        formatVolumeToLocalizedNumerals: getFormattedVolume,
         formatExchangeRateAmountToWesternArabicNumerals: (value: number) => getFormattedExchangeRateAmount(value, NumeralSystem.WesternArabicNumerals),
         appendDigitGroupingSymbolAndDecimalSeparator: (value: string) => appendDigitGroupingSymbolAndDecimalSeparator(value, getNumberFormatOptions({})),
         getAdaptiveAmountRate,

@@ -3,11 +3,12 @@ import { computed } from 'vue';
 import { useI18n } from '@/locales/helpers.ts';
 
 import {
+    type DateTime,
     type UnixTimeRange,
     type YearUnixTime,
     type YearQuarterUnixTime,
     type YearMonthUnixTime,
-    YearMonthDayUnixTime,
+    YearMonthDayUnixTime
 } from '@/core/datetime.ts';
 import type { FiscalYearUnixTime } from '@/core/fiscalyear.ts';
 import { ChartDateAggregationType } from '@/core/statistics.ts';
@@ -19,13 +20,14 @@ import { sumAmounts } from '@/lib/numeral.ts';
 import {
     parseDateTimeFromUnixTime,
     getGregorianCalendarYearAndMonthFromUnixTime,
-    getYearFirstUnixTimeBySpecifiedUnixTime,
-    getQuarterFirstUnixTimeBySpecifiedUnixTime,
-    getMonthFirstUnixTimeBySpecifiedUnixTime,
-    getDayFirstUnixTimeBySpecifiedUnixTime,
+    getYearFirstDateTimeBySpecifiedDateTime,
+    getQuarterFirstTimeTimeBySpecifiedUnixTime,
+    getMonthFirstDateTimeBySpecifiedUnixTime,
+    getDayFirstDateTimeBySpecifiedUnixTime,
     getAllDaysStartAndEndUnixTimes,
-    getFiscalYearStartUnixTime
+    getFiscalYearStartDateTime
 } from '@/lib/datetime.ts';
+import { TimezoneTypeForStatistics } from '@/core/timezone.ts';
 import { getAllDateRangesByYearMonthRange } from '@/lib/statistics.ts';
 
 export interface AccountBalanceUnixTimeAndBalanceRange extends UnixTimeRange {
@@ -42,11 +44,14 @@ export interface AccountBalanceTrendsChartItem {
     maximumBalance: number;
     medianBalance: number;
     averageBalance: number;
+    q1Balance: number;
+    q3Balance: number;
 }
 
 export interface CommonAccountBalanceTrendsChartProps {
     items: TransactionReconciliationStatementResponseItem[] | undefined;
     dateAggregationType: number;
+    timezoneUsedForDateRange: number;
     fiscalYearStart: number;
     account: AccountInfoResponse;
 }
@@ -117,29 +122,40 @@ export function useAccountBalanceTrendsChartBase(props: CommonAccountBalanceTren
             return ret;
         }
 
-        const dayDataItemsMap: Record<number, TransactionReconciliationStatementResponseItem[]> = {};
+        const dayDataItemsMap: Record<string, TransactionReconciliationStatementResponseItem[]> = {};
 
         for (const dateItem of props.items) {
-            let dateRangeMinUnixTime = 0;
+            let minDateTime: DateTime;
+            let displayDate = '';
+            let transactionTimeUtfOffset: number | undefined = undefined;
+
+            if (props.timezoneUsedForDateRange === TimezoneTypeForStatistics.TransactionTimezone.type) {
+                transactionTimeUtfOffset = dateItem.utcOffset;
+            }
 
             if (props.dateAggregationType === ChartDateAggregationType.Year.type) {
-                dateRangeMinUnixTime = getYearFirstUnixTimeBySpecifiedUnixTime(dateItem.time);
+                minDateTime = getYearFirstDateTimeBySpecifiedDateTime(dateItem.time, transactionTimeUtfOffset);
+                displayDate = formatDateTimeToGregorianLikeShortYear(minDateTime);
             } else if (props.dateAggregationType === ChartDateAggregationType.FiscalYear.type) {
-                dateRangeMinUnixTime = getFiscalYearStartUnixTime(dateItem.time, props.fiscalYearStart);
+                minDateTime = getFiscalYearStartDateTime(dateItem.time, props.fiscalYearStart, transactionTimeUtfOffset);
+                displayDate = formatDateTimeToGregorianLikeFiscalYear(minDateTime);
             } else if (props.dateAggregationType === ChartDateAggregationType.Quarter.type) {
-                dateRangeMinUnixTime = getQuarterFirstUnixTimeBySpecifiedUnixTime(dateItem.time);
+                minDateTime = getQuarterFirstTimeTimeBySpecifiedUnixTime(dateItem.time, transactionTimeUtfOffset);
+                displayDate = formatDateTimeToGregorianLikeYearQuarter(minDateTime);
             } else if (props.dateAggregationType === ChartDateAggregationType.Month.type) {
-                dateRangeMinUnixTime = getMonthFirstUnixTimeBySpecifiedUnixTime(dateItem.time);
+                minDateTime = getMonthFirstDateTimeBySpecifiedUnixTime(dateItem.time, transactionTimeUtfOffset);
+                displayDate = formatDateTimeToGregorianLikeShortYearMonth(minDateTime);
             } else if (props.dateAggregationType === ChartDateAggregationType.Day.type) {
-                dateRangeMinUnixTime = getDayFirstUnixTimeBySpecifiedUnixTime(dateItem.time);
+                minDateTime = getDayFirstDateTimeBySpecifiedUnixTime(dateItem.time, transactionTimeUtfOffset);
+                displayDate = formatDateTimeToShortDate(minDateTime);
             } else {
                 return ret;
             }
 
-            const dataItems: TransactionReconciliationStatementResponseItem[] = dayDataItemsMap[dateRangeMinUnixTime] || [];
+            const dataItems: TransactionReconciliationStatementResponseItem[] = dayDataItemsMap[displayDate] || [];
             dataItems.push(dateItem);
 
-            dayDataItemsMap[dateRangeMinUnixTime] = dataItems;
+            dayDataItemsMap[displayDate] = dataItems;
         }
 
         let lastOpeningBalance = dataDateRange.value.minUnixTimeOpeningBalance;
@@ -148,9 +164,10 @@ export function useAccountBalanceTrendsChartBase(props: CommonAccountBalanceTren
         let lastMaximumBalance = lastClosingBalance;
         let lastMedianBalance = lastClosingBalance;
         let lastAverageBalance = lastClosingBalance;
+        let lastQ1Balance = lastClosingBalance;
+        let lastQ3Balance = lastClosingBalance;
 
         for (const dateRange of allDateRanges.value) {
-            const dataItems = dayDataItemsMap[dateRange.minUnixTime];
             const minDateTime = parseDateTimeFromUnixTime(dateRange.minUnixTime);
 
             let displayDate = '';
@@ -168,6 +185,8 @@ export function useAccountBalanceTrendsChartBase(props: CommonAccountBalanceTren
             } else {
                 return ret;
             }
+
+            const dataItems = dayDataItemsMap[displayDate];
 
             if (isArray(dataItems)) {
                 if (dataItems.length < 1) {
@@ -190,6 +209,8 @@ export function useAccountBalanceTrendsChartBase(props: CommonAccountBalanceTren
                 const maximumBalance = Math.max(...dataItems.map(item => item.accountClosingBalance));
                 const medianBalance = allDataItemsSortedByClosingBalance[Math.floor(allDataItemsSortedByClosingBalance.length / 2)]!.accountClosingBalance;
                 const averageBalance = Math.trunc(sumAmounts(dataItems.map(item => item.accountClosingBalance)) / dataItems.length);
+                const q1Balance = allDataItemsSortedByClosingBalance[Math.floor(allDataItemsSortedByClosingBalance.length / 4)]!.accountClosingBalance;
+                const q3Balance = allDataItemsSortedByClosingBalance[Math.floor(allDataItemsSortedByClosingBalance.length * 3 / 4)]!.accountClosingBalance;
 
                 if (props.account.isAsset) {
                     lastOpeningBalance = openingBalance;
@@ -198,6 +219,8 @@ export function useAccountBalanceTrendsChartBase(props: CommonAccountBalanceTren
                     lastMaximumBalance = maximumBalance;
                     lastMedianBalance = medianBalance;
                     lastAverageBalance = averageBalance;
+                    lastQ1Balance = q1Balance;
+                    lastQ3Balance = q3Balance;
                 } else if (props.account.isLiability) {
                     lastOpeningBalance = -openingBalance;
                     lastClosingBalance = -closingBalance;
@@ -205,6 +228,8 @@ export function useAccountBalanceTrendsChartBase(props: CommonAccountBalanceTren
                     lastMaximumBalance = -maximumBalance;
                     lastMedianBalance = -medianBalance;
                     lastAverageBalance = -averageBalance;
+                    lastQ1Balance = -q1Balance;
+                    lastQ3Balance = -q3Balance;
                 } else {
                     lastOpeningBalance = openingBalance;
                     lastClosingBalance = closingBalance;
@@ -212,6 +237,8 @@ export function useAccountBalanceTrendsChartBase(props: CommonAccountBalanceTren
                     lastMaximumBalance = maximumBalance;
                     lastMedianBalance = medianBalance;
                     lastAverageBalance = averageBalance;
+                    lastQ1Balance = q1Balance;
+                    lastQ3Balance = q3Balance;
                 }
             }
 
@@ -222,7 +249,9 @@ export function useAccountBalanceTrendsChartBase(props: CommonAccountBalanceTren
                 minimumBalance: lastMinimumBalance,
                 maximumBalance: lastMaximumBalance,
                 medianBalance: lastMedianBalance,
-                averageBalance: lastAverageBalance
+                averageBalance: lastAverageBalance,
+                q1Balance: lastQ1Balance,
+                q3Balance: lastQ3Balance
             });
 
             lastOpeningBalance = lastClosingBalance;

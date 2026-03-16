@@ -1,16 +1,16 @@
 <template>
     <f7-page @page:afterin="onPageAfterIn">
         <f7-navbar>
-            <f7-nav-left :back-link="tt('Back')"></f7-nav-left>
+            <f7-nav-left :class="{ 'disabled': loading }"  :back-link="tt('Back')"></f7-nav-left>
             <f7-nav-title>
                 <span style="color: var(--f7-text-color)" v-if="!finishQuery">{{ tt('Reconciliation Statement') }}</span>
-                <f7-link popover-open=".display-mode-popover-menu" v-if="finishQuery">
+                <f7-link popover-open=".display-mode-popover-menu" :class="{ 'disabled': loading }" v-if="finishQuery">
                     <span style="color: var(--f7-text-color)">{{ tt('Reconciliation Statement') }}</span>
                     <f7-icon class="page-title-bar-icon" style="opacity: 0.5"
                              color="gray" f7="chevron_down_circle_fill"></f7-icon>
                 </f7-link>
             </f7-nav-title>
-            <f7-nav-right class="navbar-compact-icons">
+            <f7-nav-right :class="{ 'navbar-compact-icons': true, 'disabled': loading }">
                 <f7-link icon-f7="checkmark_alt" :class="{ 'disabled': !validQuery }" @click="reload(false)" v-if="!finishQuery"></f7-link>
                 <f7-link icon-f7="ellipsis" :class="{ 'disabled': loading }" v-if="finishQuery" @click="showMoreActionSheet = true"></f7-link>
             </f7-nav-right>
@@ -273,6 +273,7 @@
                 <account-balance-trends-bar-chart
                     :loading="loading"
                     :date-aggregation-type="chartDataDateAggregationType"
+                    :timezone-used-for-date-range="timezoneUsedForDateRange"
                     :fiscal-year-start="fiscalYearStart"
                     :items="reconciliationStatements?.transactions"
                     :account="currentAccount"
@@ -282,6 +283,9 @@
 
         <f7-popover class="chart-data-date-aggregation-type-popover-menu">
             <f7-list dividers>
+                <f7-list-item group-title>
+                    <small>{{ tt('Time Granularity') }}</small>
+                </f7-list-item>
                 <f7-list-item link="#" no-chevron popover-close
                               :title="dateAggregationType.displayName"
                               :class="{ 'list-item-selected': chartDataDateAggregationType === dateAggregationType.type }"
@@ -292,6 +296,20 @@
                         <f7-icon class="list-item-checked-icon" f7="checkmark_alt" v-if="chartDataDateAggregationType === dateAggregationType.type"></f7-icon>
                     </template>
                 </f7-list-item>
+                <f7-list-item group-title>
+                    <small>{{ tt('Timezone Used for Date Range') }}</small>
+                </f7-list-item>
+                <f7-list-item link="#" no-chevron popover-close
+                              :title="timezoneType.displayName"
+                              :class="{ 'list-item-selected': timezoneUsedForDateRange === timezoneType.type }"
+                              :key="timezoneType.type"
+                              v-for="timezoneType in allTimezoneTypesUsedForDateRange"
+                              @click="setTimezoneUsedForDateRange(timezoneType.type)">
+                    <template #after>
+                        <f7-icon class="list-item-checked-icon" f7="checkmark_alt" v-if="timezoneUsedForDateRange === timezoneType.type"></f7-icon>
+                    </template>
+                </f7-list-item>
+
             </f7-list>
         </f7-popover>
 
@@ -305,7 +323,7 @@
         <number-pad-sheet :min-value="TRANSACTION_MIN_AMOUNT"
                           :max-value="TRANSACTION_MAX_AMOUNT"
                           :currency="currentAccountCurrency"
-                          :hint="tt('Please enter the new closing balance for the account')"
+                          :hint="tt('Please enter the new closing balance for this account')"
                           v-model:show="showNewClosingBalanceSheet"
                           v-model="newClosingBalance"
                           @update:model-value="updateClosingBalance"
@@ -352,7 +370,6 @@ import { TextDirection } from '@/core/text.ts';
 import { type TimeRangeAndDateType, DateRange, DateRangeScene } from '@/core/datetime.ts';
 import { AccountType } from '@/core/account.ts';
 import { TransactionType } from '@/core/transaction.ts';
-import { ChartDateAggregationType } from '@/core/statistics.ts';
 import { TRANSACTION_MIN_AMOUNT, TRANSACTION_MAX_AMOUNT } from '@/consts/transaction.ts';
 import { type TransactionReconciliationStatementResponseItemWithInfo } from '@/models/transaction.ts';
 
@@ -398,9 +415,12 @@ const {
     startTime,
     endTime,
     reconciliationStatements,
+    chartDataDateAggregationType,
+    timezoneUsedForDateRange,
     firstDayOfWeek,
     fiscalYearStart,
     allDateAggregationTypes,
+    allTimezoneTypesUsedForDateRange,
     isCurrentLiabilityAccount,
     currentAccount,
     currentAccountCurrency,
@@ -430,7 +450,6 @@ const loading = ref<boolean>(false);
 const loadingError = ref<unknown | null>(null);
 const queryDateRangeType = ref<number>(DateRange.ThisMonth.type);
 const showAccountBalanceTrendsCharts = ref<boolean>(false);
-const chartDataDateAggregationType = ref<number>(ChartDateAggregationType.Day.type);
 const transactionToDelete = ref<TransactionReconciliationStatementResponseItemWithInfo | null>(null);
 const newClosingBalance = ref<number>(0);
 const showCustomDateRangeSheet = ref<boolean>(false);
@@ -669,6 +688,10 @@ function removeTransaction(transaction: TransactionReconciliationStatementRespon
 
 function setChartDataDateAggregationType(type: number): void {
     chartDataDateAggregationType.value = type;
+}
+
+function setTimezoneUsedForDateRange(type: number): void {
+    timezoneUsedForDateRange.value = type;
 }
 
 function renderExternal(vl: unknown, vlData: ReconciliationStatementVirtualListData): void {

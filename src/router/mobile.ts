@@ -21,7 +21,9 @@ import StatisticsSettingsPage from '@/views/mobile/statistics/SettingsPage.vue';
 
 import TextSizeSettingsPage from '@/views/mobile/settings/TextSizeSettingsPage.vue';
 import PageSettingsPage from '@/views/mobile/settings/PageSettingsPage.vue';
+import AccountCategoryDisplayOrderSettingsPage from '@/views/mobile/settings/AccountCategoryDisplayOrderSettingsPage.vue';
 import ApplicationCloudSyncSettingsPage from '@/views/mobile/settings/ApplicationCloudSyncSettingsPage.vue';
+import BrowserCacheSettingPage from '@/views/mobile/settings/BrowserCacheSettingPage.vue';
 import AccountFilterSettingsPage from '@/views/mobile/settings/AccountFilterSettingsPage.vue';
 import CategoryFilterSettingsPage from '@/views/mobile/settings/CategoryFilterSettingsPage.vue';
 import TransactionTagFilterSettingsPage from '@/views/mobile/settings/TransactionTagFilterSettingsPage.vue';
@@ -43,6 +45,7 @@ import CategoryEditPage from '@/views/mobile/categories/EditPage.vue';
 import CategoryPresetPage from '@/views/mobile/categories/PresetPage.vue';
 
 import TagListPage from '@/views/mobile/tags/ListPage.vue';
+import TagGroupListPage from '@/views/mobile/tags/GroupListPage.vue';
 
 import TemplateListPage from '@/views/mobile/templates/ListPage.vue';
 
@@ -239,8 +242,18 @@ const routes: Router.RouteParameters[] = [
         beforeEnter: [checkLogin]
     },
     {
+        path: '/settings/account_category_display_order',
+        async: asyncResolve(AccountCategoryDisplayOrderSettingsPage),
+        beforeEnter: [checkLogin]
+    },
+    {
         path: '/settings/sync',
         async: asyncResolve(ApplicationCloudSyncSettingsPage),
+        beforeEnter: [checkLogin]
+    },
+    {
+        path: '/settings/browser_caches',
+        async: asyncResolve(BrowserCacheSettingPage),
         beforeEnter: [checkLogin]
     },
     {
@@ -316,6 +329,11 @@ const routes: Router.RouteParameters[] = [
     {
         path: '/tag/list',
         async: asyncResolve(TagListPage),
+        beforeEnter: [checkLogin]
+    },
+    {
+        path: '/tag/group/list',
+        async: asyncResolve(TagGroupListPage),
         beforeEnter: [checkLogin]
     },
     {

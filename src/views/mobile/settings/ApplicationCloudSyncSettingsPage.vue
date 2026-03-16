@@ -1,9 +1,9 @@
 <template>
     <f7-page @page:afterin="onPageAfterIn">
         <f7-navbar>
-            <f7-nav-left :back-link="tt('Back')"></f7-nav-left>
+            <f7-nav-left :class="{ 'disabled': loading }" :back-link="tt('Back')"></f7-nav-left>
             <f7-nav-title :title="tt('Settings Sync')"></f7-nav-title>
-            <f7-nav-right>
+            <f7-nav-right :class="{ 'disabled': loading }">
                 <f7-link icon-f7="ellipsis" :class="{ 'disabled': loading || enabling || disabling }" @click="showMoreActionSheet = true"></f7-link>
             </f7-nav-right>
         </f7-navbar>
@@ -38,7 +38,7 @@
                                       :checked="enabledApplicationCloudSettings[settingItem.settingKey]"
                                       :key="settingItem.settingKey"
                                       v-for="settingItem in categorizedItems.items"
-                                      @change="enabledApplicationCloudSettings[settingItem.settingKey] = $event.target.checked">
+                                      @change="updateSettingSelected(settingItem, $event.target.checked)">
                             <template #after>
                                 <f7-icon class="synchronized-settings-device-icon" f7="device_phone_portrait" v-if="settingItem.mobile"></f7-icon>
                                 <f7-icon class="synchronized-settings-device-icon" f7="device_desktop" v-if="settingItem.desktop"></f7-icon>
@@ -115,6 +115,7 @@ const {
     isAllSettingsSelected,
     hasSettingSelectedButNotAllChecked,
     updateSettingsSelected,
+    updateSettingSelected,
     selectAllSettings,
     selectNoneSettings,
     selectInvertSettings,

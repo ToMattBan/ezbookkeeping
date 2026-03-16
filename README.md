@@ -11,7 +11,7 @@
 [![Trending](https://trendshift.io/api/badge/repositories/12917)](https://trendshift.io/repositories/12917)
 
 ## Introduction
-ezBookkeeping is a lightweight, self-hosted personal finance app with a user-friendly interface and powerful bookkeeping features. It's easy to deploy, and you can start it with just one single Docker command. Designed to be resource-efficient and highly scalable, it can run smoothly on devices as small as a Raspberry Pi, or scale up to NAS, MicroServers, and even large cluster environments.
+ezBookkeeping is a lightweight, self-hosted personal finance app with a user-friendly interface and powerful bookkeeping features. It helps you record daily transactions, import data from various sources, and quickly search and filter your bills. You can analyze historical data using built-in charts or perform custom queries with your own chart dimensions to better understand spending patterns and financial trends. ezBookkeeping is easy to deploy, and you can start it with just one single Docker command. Designed to be resource-efficient, it runs smoothly on devices such as Raspberry Pi, NAS, and MicroServers.
 
 ezBookkeeping offers tailored interfaces for both mobile and desktop devices. With support for PWA (Progressive Web Apps), you can even [add it to your mobile home screen](https://raw.githubusercontent.com/wiki/mayswind/ezbookkeeping/img/mobile/add_to_home_screen.gif) and use it like a native app.
 
@@ -21,9 +21,9 @@ Live Demo: [https://ezbookkeeping-demo.mayswind.net](https://ezbookkeeping-demo.
 - **Open Source & Self-Hosted**
     - Built for privacy and control
 - **Lightweight & Fast**
-    - Optimized for performance, runs smoothly even on low-resource environments
+    - Minimal resource usage, runs smoothly even on low-resource devices
 - **Easy Installation**
-    - Docker-ready
+    - Docker support
     - Supports SQLite, MySQL, PostgreSQL
     - Cross-platform (Windows, macOS, Linux)
     - Works on x86, amd64, ARM architectures
@@ -33,24 +33,28 @@ Live Demo: [https://ezbookkeeping-demo.mayswind.net](https://ezbookkeeping-demo.
     - Dark mode
 - **AI-Powered Features**
     - Receipt image recognition
-    - Supports MCP (Model Context Protocol) for AI integration
+    - MCP (Model Context Protocol) support for AI integration
+    - API command-line script tools for AI integration
 - **Powerful Bookkeeping**
     - Two-level accounts and categories
-    - Attach images to transactions
+    - Image attachments for transactions
     - Location tracking with maps
-    - Recurring transactions
-    - Advanced filtering, search, visualization, and analysis
-- **Localization & Globalization**
+    - Scheduled transactions
+    - Advanced filtering, search, visualization and analysis
+- **Localization & Internationalization**
     - Multi-language and multi-currency support
-    - Automatic exchange rates
-    - Multi-timezone awareness
-    - Custom formats for dates, numbers, and currencies
+    - Multiple exchange rate sources with automatic updates
+    - Multi-timezone support
+    - Custom formats for dates, numbers and currencies
 - **Security**
     - Two-factor authentication (2FA)
+    - OIDC external authentication
     - Login rate limiting
     - Application lock (PIN code / WebAuthn)
-- **Data Import/Export**
-    - Supports CSV, OFX, QFX, QIF, IIF, Camt.053, MT940, GnuCash, Firefly III, Beancount, and more
+- **Data Import & Export**
+    - Supports CSV, OFX, QFX, QIF, IIF, Camt.052, Camt.053, MT940, GnuCash, Firefly III, Beancount and more
+
+For a full list of features, visit the [Full Feature List](https://ezbookkeeping.mayswind.net/comparison/).
 
 ## Screenshots
 ### Desktop Version
@@ -112,16 +116,16 @@ You can also build a Docker image. Make sure you have [Docker](https://www.docke
 ## Contributing
 We welcome contributions of all kinds.
 
-Found a bug? [Submit an issue](https://github.com/mayswind/ezbookkeeping/issues)
+If you find a bug, please [submit an issue](https://github.com/mayswind/ezbookkeeping/issues) on GitHub.
 
-Want to contribute code? Feel free to fork and send a pull request.
+If you would like to contribute code, you can fork the repository and open a pull request.
 
-Contributions of all kinds — bug reports, feature suggestions, documentation improvements, or code — are highly appreciated.
+Improvements to documentation, feature suggestions, and other forms of feedback are also appreciated.
 
-Check out our [Contributor Graph](https://github.com/mayswind/ezbookkeeping/graphs/contributors) to see the amazing people who've already helped.
+You can view existing contributors on the [Contributor Graph](https://github.com/mayswind/ezbookkeeping/graphs/contributors).
 
 ## Translating
-Help make ezBookkeeping accessible to users around the world. If you want to contribute a translation, please refer to our [translation guide](https://ezbookkeeping.mayswind.net/translating).
+Help make ezBookkeeping accessible to users around the world. We welcome help to improve existing translations or add new ones. If you would like to contribute a translation, please refer to the [translation guide](https://ezbookkeeping.mayswind.net/translating).
 
 Currently available translations:
 
@@ -129,7 +133,7 @@ Currently available translations:
 | --- | --- | --- |
 | de | Deutsch | [@chrgm](https://github.com/chrgm) |
 | en | English | / |
-| es | Español | [@Miguelonlonlon](https://github.com/Miguelonlonlon), [@abrugues](https://github.com/abrugues) |
+| es | Español | [@Miguelonlonlon](https://github.com/Miguelonlonlon), [@abrugues](https://github.com/abrugues), [@AndresTeller](https://github.com/AndresTeller), [@diegofercri](https://github.com/diegofercri) |
 | fr | Français | [@brieucdlf](https://github.com/brieucdlf) |
 | it | Italiano | [@waron97](https://github.com/waron97) |
 | ja | 日本語 | [@tkymmm](https://github.com/tkymmm) |
@@ -137,15 +141,15 @@ Currently available translations:
 | ko | 한국어 | [@overworks](https://github.com/overworks) |
 | nl | Nederlands | [@automagics](https://github.com/automagics) |
 | pt-BR | Português (Brasil) | [@thecodergus](https://github.com/thecodergus) |
-| ru | Русский | [@artegoser](https://github.com/artegoser) |
+| ru | Русский | [@artegoser](https://github.com/artegoser), [@dshemin](https://github.com/dshemin) |
+| sl | Slovenščina | [@thehijacker](https://github.com/thehijacker) |
+| ta | தமிழ் | [@hhharsha36](https://github.com/hhharsha36) |
 | th | ไทย | [@natthavat28](https://github.com/natthavat28) |
 | tr | Türkçe | [@aydnykn](https://github.com/aydnykn) |
 | uk | Українська | [@nktlitvinenko](https://github.com/nktlitvinenko) |
 | vi | Tiếng Việt | [@f97](https://github.com/f97) |
 | zh-Hans | 中文 (简体) | / |
 | zh-Hant | 中文 (繁體) | / |
-
-Don't see your language? Help us add it.
 
 ## Documentation
 1. [English](https://ezbookkeeping.mayswind.net)

@@ -1,12 +1,15 @@
 <template>
     <f7-page :ptr="!sortable" @ptr:refresh="reload" @page:afterin="onPageAfterIn">
         <f7-navbar>
-            <f7-nav-left :back-link="tt('Back')"></f7-nav-left>
+            <f7-nav-left :class="{ 'disabled': loading }" :back-link="tt('Back')" v-if="!sortable"></f7-nav-left>
+            <f7-nav-left v-else-if="sortable">
+                <f7-link icon-f7="xmark" :class="{ 'disabled': displayOrderSaving }" @click="cancelSort"></f7-link>
+            </f7-nav-left>
             <f7-nav-title :title="templateType === TemplateType.Schedule.type ? tt('Scheduled Transactions') : tt('Transaction Templates')"></f7-nav-title>
-            <f7-nav-right class="navbar-compact-icons">
-                <f7-link icon-f7="ellipsis" :class="{ 'disabled': !templates.length }" v-if="!sortable" @click="showMoreActionSheet = true"></f7-link>
+            <f7-nav-right :class="{ 'navbar-compact-icons': true, 'disabled': loading }">
+                <f7-link icon-f7="ellipsis" :class="{ 'disabled': !templates.length || sortable }" @click="showMoreActionSheet = true"></f7-link>
                 <f7-link icon-f7="plus" :href="'/template/add?templateType=' + templateType" v-if="!sortable"></f7-link>
-                <f7-link :text="tt('Done')" :class="{ 'disabled': displayOrderSaving }" @click="saveSortResult" v-else-if="sortable"></f7-link>
+                <f7-link icon-f7="checkmark_alt" :class="{ 'disabled': displayOrderSaving || !displayOrderModified }" @click="saveSortResult" v-else-if="sortable"></f7-link>
             </f7-nav-right>
         </f7-navbar>
 
@@ -21,7 +24,7 @@
 
         <f7-list strong inset dividers class="margin-top" v-if="!loading && noAvailableTemplate">
             <f7-list-item :title="tt('No available template')"
-                          :footer="tt('Once you add templates, you can long press the Add button on the home page to quickly add a new transaction')"
+                          :footer="tt('Once you add templates, you can long-press the Add button on the home page to quickly add a new transaction')"
                           v-if="templateType === TemplateType.Normal.type"></f7-list-item>
             <f7-list-item :title="tt('No available scheduled transactions')" v-else-if="templateType === TemplateType.Schedule.type"></f7-list-item>
             <f7-list-item :title="tt('No available template')" v-else></f7-list-item>
@@ -67,7 +70,7 @@
 
         <f7-actions close-by-outside-click close-on-escape :opened="showMoreActionSheet" @actions:closed="showMoreActionSheet = false">
             <f7-actions-group>
-                <f7-actions-button @click="setSortable()">{{ tt('Sort') }}</f7-actions-button>
+                <f7-actions-button :class="{ 'disabled': !templates || templates.length < 2 }" @click="setSortable()">{{ tt('Sort') }}</f7-actions-button>
                 <f7-actions-button v-if="!showHidden" @click="showHidden = true">{{ tt('Show Hidden Transaction Templates') }}</f7-actions-button>
                 <f7-actions-button v-if="showHidden" @click="showHidden = false">{{ tt('Hide Hidden Transaction Templates') }}</f7-actions-button>
             </f7-actions-group>
@@ -272,6 +275,36 @@ function saveSortResult(): void {
 
     transactionTemplatesStore.updateTemplateDisplayOrders({
         templateType: templateType.value
+    }).then(() => {
+        displayOrderSaving.value = false;
+        hideLoading();
+
+        showHidden.value = false;
+        sortable.value = false;
+        displayOrderModified.value = false;
+    }).catch(error => {
+        displayOrderSaving.value = false;
+        hideLoading();
+
+        if (!error.processed) {
+            showToast(error.message || error);
+        }
+    });
+}
+
+function cancelSort(): void {
+    if (!displayOrderModified.value) {
+        showHidden.value = false;
+        sortable.value = false;
+        return;
+    }
+
+    displayOrderSaving.value = true;
+    showLoading();
+
+    transactionTemplatesStore.loadAllTemplates({
+        templateType: templateType.value,
+        force: false
     }).then(() => {
         displayOrderSaving.value = false;
         hideLoading();

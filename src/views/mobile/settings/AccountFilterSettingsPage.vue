@@ -1,9 +1,9 @@
 <template>
     <f7-page with-subnavbar @page:beforein="onPageBeforeIn" @page:afterin="onPageAfterIn">
         <f7-navbar>
-            <f7-nav-left :back-link="tt('Back')"></f7-nav-left>
+            <f7-nav-left :class="{ 'disabled': loading }" :back-link="tt('Back')"></f7-nav-left>
             <f7-nav-title :title="tt(title)"></f7-nav-title>
-            <f7-nav-right class="navbar-compact-icons">
+            <f7-nav-right :class="{ 'navbar-compact-icons': true, 'disabled': loading }">
                 <f7-link icon-f7="ellipsis" :class="{ 'disabled': !hasAnyAvailableAccount }" @click="showMoreActionSheet = true"></f7-link>
                 <f7-link icon-f7="checkmark_alt" :class="{ 'disabled': !hasAnyAvailableAccount }" @click="save"></f7-link>
             </f7-nav-right>
@@ -11,6 +11,7 @@
             <f7-subnavbar :inner="false">
                 <f7-searchbar
                     custom-searchs
+                    :class="{ 'disabled': loading }"
                     :value="filterContent"
                     :placeholder="tt('Find account')"
                     :disable-button-text="tt('Cancel')"
@@ -178,6 +179,7 @@ const {
     filterAccountIds,
     title,
     allowHiddenAccount,
+    customAccountCategoryOrder,
     allCategorizedAccounts,
     allVisibleAccountMap,
     hasAnyAvailableAccount,
@@ -195,7 +197,7 @@ const showMoreActionSheet = ref<boolean>(false);
 
 function getCollapseStates(): Record<number, CollapseState> {
     const collapseStates: Record<number, CollapseState> = {};
-    const allCategories = AccountCategory.values();
+    const allCategories = AccountCategory.values(customAccountCategoryOrder.value);
 
     for (const accountCategory of allCategories) {
         collapseStates[accountCategory.type] = {

@@ -52,7 +52,7 @@ import 'vuetify/styles';
 
 import * as echarts from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
-import { LineChart, BarChart, PieChart, ScatterChart, CandlestickChart, RadarChart, SankeyChart } from 'echarts/charts';
+import { LineChart, BarChart, PieChart, ScatterChart, BoxplotChart, CandlestickChart, RadarChart, SankeyChart } from 'echarts/charts';
 import {
     GridComponent,
     TooltipComponent,
@@ -94,13 +94,16 @@ import FiscalYearStartSelect from '@/components/desktop/FiscalYearStartSelect.vu
 import ColorSelect from '@/components/desktop/ColorSelect.vue';
 import IconSelect from '@/components/desktop/IconSelect.vue';
 import TwoColumnSelect from '@/components/desktop/TwoColumnSelect.vue';
+import TransactionTagAutoComplete from '@/components/desktop/TransactionTagAutoComplete.vue';
 import ScheduleFrequencySelect from '@/components/desktop/ScheduleFrequencySelect.vue';
 import StepsBar from '@/components/desktop/StepsBar.vue';
 import ConfirmDialog from '@/components/desktop/ConfirmDialog.vue';
 import SnackBar from '@/components/desktop/SnackBar.vue';
 import PieChartComponent from '@/components/desktop/PieChart.vue';
 import RadarChartComponent from '@/components/desktop/RadarChart.vue';
+import AxisChart from '@/components/desktop/AxisChart.vue';
 import TrendsChart from '@/components/desktop/TrendsChart.vue';
+import RenameDialog from '@/components/desktop/RenameDialog.vue';
 import DateRangeSelectionDialog from '@/components/desktop/DateRangeSelectionDialog.vue';
 import MonthSelectionDialog from '@/components/desktop/MonthSelectionDialog.vue';
 import MonthRangeSelectionDialog from '@/components/desktop/MonthRangeSelectionDialog.vue';
@@ -500,6 +503,7 @@ echarts.use([
     BarChart,
     PieChart,
     ScatterChart,
+    BoxplotChart,
     CandlestickChart,
     RadarChart,
     SankeyChart,
@@ -538,13 +542,16 @@ app.component('FiscalYearStartSelect', FiscalYearStartSelect);
 app.component('ColorSelect', ColorSelect);
 app.component('IconSelect', IconSelect);
 app.component('TwoColumnSelect', TwoColumnSelect);
+app.component('TransactionTagAutoComplete', TransactionTagAutoComplete);
 app.component('ScheduleFrequencySelect', ScheduleFrequencySelect);
 app.component('StepsBar', StepsBar);
 app.component('ConfirmDialog', ConfirmDialog);
 app.component('SnackBar', SnackBar);
 app.component('PieChart', PieChartComponent);
 app.component('RadarChart', RadarChartComponent);
+app.component('AxisChart', AxisChart);
 app.component('TrendsChart', TrendsChart);
+app.component('RenameDialog', RenameDialog);
 app.component('DateRangeSelectionDialog', DateRangeSelectionDialog);
 app.component('MonthSelectionDialog', MonthSelectionDialog);
 app.component('MonthRangeSelectionDialog', MonthRangeSelectionDialog);
