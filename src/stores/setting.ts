@@ -234,6 +234,12 @@ export const useSettingsStore = defineStore('settings', () => {
     }
 
     // Transaction Edit Page
+    function setQuickSaveButtonStyleInMobileTransactionListPage(value: number): void {
+        updateApplicationSettingsValue('quickSaveButtonStyleInMobileTransactionListPage', value);
+        appSettings.value.quickSaveButtonStyleInMobileTransactionListPage = value;
+        updateUserApplicationCloudSettingValue('quickSaveButtonStyleInMobileTransactionListPage', value);
+    }
+
     function setQuickAddButtonActionInMobileTransactionEditPage(value: number): void {
         updateApplicationSettingsValue('quickAddButtonActionInMobileTransactionEditPage', value);
         appSettings.value.quickAddButtonActionInMobileTransactionEditPage = value;
@@ -256,6 +262,19 @@ export const useSettingsStore = defineStore('settings', () => {
         updateApplicationSettingsValue('alwaysShowTransactionPicturesInMobileTransactionEditPage', value);
         appSettings.value.alwaysShowTransactionPicturesInMobileTransactionEditPage = value;
         updateUserApplicationCloudSettingValue('alwaysShowTransactionPicturesInMobileTransactionEditPage', value);
+    }
+
+    function setTransactionPictureQuality(value: number): void {
+        updateApplicationSettingsValue('transactionPictureQuality', value);
+        appSettings.value.transactionPictureQuality = value;
+        updateUserApplicationCloudSettingValue('transactionPictureQuality', value);
+    }
+
+    // AI Image Recognition
+    function setAutoUploadTransactionPictureForAIRecognition(value: boolean): void {
+        updateApplicationSettingsValue('autoUploadTransactionPictureForAIRecognition', value);
+        appSettings.value.autoUploadTransactionPictureForAIRecognition = value;
+        updateUserApplicationCloudSettingValue('autoUploadTransactionPictureForAIRecognition', value);
     }
 
     // Import Transaction Dialog
@@ -309,6 +328,18 @@ export const useSettingsStore = defineStore('settings', () => {
         updateApplicationSettingsValue('hideCategoriesWithoutAccounts', value);
         appSettings.value.hideCategoriesWithoutAccounts = value;
         updateUserApplicationCloudSettingValue('hideCategoriesWithoutAccounts', value);
+    }
+
+    function setReconciliationStatementButtonDefaultDateRangeTypeInDesktop(value: number): void {
+        updateApplicationSettingsValue('reconciliationStatementButtonDefaultDateRangeTypeInDesktop', value);
+        appSettings.value.reconciliationStatementButtonDefaultDateRangeTypeInDesktop = value;
+        updateUserApplicationCloudSettingValue('reconciliationStatementButtonDefaultDateRangeTypeInDesktop', value);
+    }
+
+    function setReconciliationStatementPageDefaultDateRangeTypeInMobile(value: number): void {
+        updateApplicationSettingsValue('reconciliationStatementPageDefaultDateRangeTypeInMobile', value);
+        appSettings.value.reconciliationStatementPageDefaultDateRangeTypeInMobile = value;
+        updateUserApplicationCloudSettingValue('reconciliationStatementPageDefaultDateRangeTypeInMobile', value);
     }
 
     // Exchange Rates Data Page
@@ -537,10 +568,14 @@ export const useSettingsStore = defineStore('settings', () => {
         setShowTotalAmountInTransactionListPage,
         setShowTagInTransactionListPage,
         // -- Transaction Edit Page
+        setQuickSaveButtonStyleInMobileTransactionListPage,
         setQuickAddButtonActionInMobileTransactionEditPage,
         setAutoSaveTransactionDraft,
         setAutoGetCurrentGeoLocation,
         setAlwaysShowTransactionPicturesInMobileTransactionEditPage,
+        setTransactionPictureQuality,
+        // -- AI Image Recognition
+        setAutoUploadTransactionPictureForAIRecognition,
         // -- Import Transaction Dialog
         setRememberLastSelectedFileTypeInImportTransactionDialog,
         setLastSelectedFileTypeInImportTransactionDialog,
@@ -551,6 +586,8 @@ export const useSettingsStore = defineStore('settings', () => {
         setTotalAmountExcludeAccountIds,
         setAccountCategoryOrders,
         setHideCategoriesWithoutAccounts,
+        setReconciliationStatementButtonDefaultDateRangeTypeInDesktop,
+        setReconciliationStatementPageDefaultDateRangeTypeInMobile,
         // -- Exchange Rates Data Page
         setCurrencySortByInExchangeRatesPage,
         // -- Browser Cache Management

@@ -53,10 +53,18 @@ export const ALL_APPLICATION_CLOUD_SETTINGS: CategorizedApplicationCloudSettingI
     {
         categoryName: 'Transaction Edit Page',
         items: [
+            { settingKey: 'quickSaveButtonStyleInMobileTransactionListPage', settingName: 'Quick Save Button Style', mobile: true, desktop: false },
             { settingKey: 'quickAddButtonActionInMobileTransactionEditPage', settingName: 'Quick Add Button Action', mobile: true, desktop: false },
             { settingKey: 'autoSaveTransactionDraft', settingName: 'Automatically Save Draft', mobile: true, desktop: true },
             { settingKey: 'autoGetCurrentGeoLocation', settingName: 'Automatically Add Geolocation', mobile: true, desktop: true },
-            { settingKey: 'alwaysShowTransactionPicturesInMobileTransactionEditPage', settingName: 'Always Show Transaction Pictures', mobile: true, desktop: false }
+            { settingKey: 'alwaysShowTransactionPicturesInMobileTransactionEditPage', settingName: 'Always Show Transaction Pictures', mobile: true, desktop: false },
+            { settingKey: 'transactionPictureQuality', settingName: 'Transaction Picture Upload Quality', mobile: true, desktop: false }
+        ]
+    },
+    {
+        categoryName: 'AI Image Recognition',
+        items: [
+            { settingKey: 'autoUploadTransactionPictureForAIRecognition', settingName: 'Auto Upload AI Recognition Image as Transaction Picture', mobile: true, desktop: true }
         ]
     },
     {
@@ -77,7 +85,9 @@ export const ALL_APPLICATION_CLOUD_SETTINGS: CategorizedApplicationCloudSettingI
         items: [
             { settingKey: 'totalAmountExcludeAccountIds', settingName: 'Accounts Included in Total', mobile: true, desktop: true },
             { settingKey: 'accountCategoryOrders', settingName: 'Account Category Order', mobile: true, desktop: true },
-            { settingKey: 'hideCategoriesWithoutAccounts', settingName: 'Hide Categories Without Accounts', mobile: false, desktop: true }
+            { settingKey: 'hideCategoriesWithoutAccounts', settingName: 'Hide Categories Without Accounts', mobile: false, desktop: true },
+            { settingKey: 'reconciliationStatementButtonDefaultDateRangeTypeInDesktop', settingName: 'Default Date Range for Reconciliation Statement Button', mobile: false, desktop: true },
+            { settingKey: 'reconciliationStatementPageDefaultDateRangeTypeInMobile', settingName: 'Default Date Range for Reconciliation Statement Page', mobile: true, desktop: false }
         ]
     },
     {

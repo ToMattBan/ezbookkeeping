@@ -95,6 +95,33 @@
             <f7-list-item
                 class="item-truncate-after-text"
                 link="#"
+                @click="showQuickSaveButtonStyleInMobileTransactionListPagePopup = true"
+            >
+                <template #after-title>
+                    <div class="item-actual-title">
+                        <span>{{ tt('Quick Save Button Style') }}</span>
+                    </div>
+                </template>
+                <template #after>
+                    {{ findDisplayNameByType(allTransactionQuickSaveButtonStyles, quickSaveButtonStyleInMobileTransactionListPage) }}
+                </template>
+                <list-item-selection-popup value-type="item"
+                                           key-field="type" value-field="type"
+                                           title-field="displayName"
+                                           :title="tt('Quick Save Button Style')"
+                                           :enable-filter="true"
+                                           :filter-placeholder="tt('Quick Save Button Style')"
+                                           :filter-no-items-text="tt('No results')"
+                                           :items="allTransactionQuickSaveButtonStyles"
+                                           v-model:show="showQuickSaveButtonStyleInMobileTransactionListPagePopup"
+                                           v-model="quickSaveButtonStyleInMobileTransactionListPage">
+                </list-item-selection-popup>
+            </f7-list-item>
+
+            <f7-list-item
+                class="item-truncate-after-text"
+                link="#"
+                :disabled="quickSaveButtonStyleInMobileTransactionListPage === TransactionQuickSaveButtonStyle.Disabled.type"
                 @click="showQuickAddButtonActionInMobileTransactionEditPagePopup = true"
             >
                 <template #after-title>
@@ -161,6 +188,44 @@
                     <f7-toggle :checked="alwaysShowTransactionPicturesInMobileTransactionEditPage" @toggle:change="alwaysShowTransactionPicturesInMobileTransactionEditPage = $event"></f7-toggle>
                 </template>
             </f7-list-item>
+
+            <f7-list-item
+                class="item-truncate-after-text"
+                link="#"
+                @click="showTransactionPictureQualityPopup = true"
+            >
+                <template #after-title>
+                    <div class="item-actual-title">
+                        <span>{{ tt('Transaction Picture Upload Quality') }}</span>
+                    </div>
+                </template>
+                <template #after>
+                    {{ findDisplayNameByType(allImageUploadQualityTypes, transactionPictureQuality) }}
+                </template>
+                <list-item-selection-popup value-type="item"
+                                           key-field="type" value-field="type"
+                                           title-field="displayName"
+                                           :title="tt('Transaction Picture Upload Quality')"
+                                           :enable-filter="true"
+                                           :filter-placeholder="tt('Transaction Picture Upload Quality')"
+                                           :filter-no-items-text="tt('No results')"
+                                           :items="allImageUploadQualityTypes"
+                                           v-model:show="showTransactionPictureQualityPopup"
+                                           v-model="transactionPictureQuality">
+                </list-item-selection-popup>
+            </f7-list-item>
+        </f7-list>
+
+        <f7-block-title>{{ tt('AI Image Recognition') }}</f7-block-title>
+        <f7-list strong inset dividers class="settings-list">
+            <f7-list-item>
+                <template #after-title>
+                    {{ tt('Auto Upload AI Recognition Image as Transaction Picture') }}
+                </template>
+                <template #after>
+                    <f7-toggle :checked="isAutoUploadTransactionPictureForAIRecognition" @toggle:change="isAutoUploadTransactionPictureForAIRecognition = $event"></f7-toggle>
+                </template>
+            </f7-list-item>
         </f7-list>
 
         <f7-block-title>{{ tt('Account List Page') }}</f7-block-title>
@@ -190,6 +255,31 @@
                 <template #after>
                     <div>{{ accountCategorysDisplayOrderContent }}</div>
                 </template>
+            </f7-list-item>
+            <f7-list-item
+                class="item-truncate-after-text"
+                link="#"
+                @click="showReconciliationStatementDefaultDateRangePopup = true"
+            >
+                <template #after-title>
+                    <div class="item-actual-title">
+                        <span>{{ tt('Default Date Range for Reconciliation Statement Page') }}</span>
+                    </div>
+                </template>
+                <template #after>
+                    {{ findDisplayNameByType(allReconciliationStatementDateRanges, reconciliationStatementPageDefaultDateRangeTypeInMobile) }}
+                </template>
+                <list-item-selection-popup value-type="item"
+                                           key-field="type" value-field="type"
+                                           title-field="displayName"
+                                           :title="tt('Default Date Range')"
+                                           :enable-filter="true"
+                                           :filter-placeholder="tt('Date Range')"
+                                           :filter-no-items-text="tt('No results')"
+                                           :items="allReconciliationStatementDateRanges"
+                                           v-model:show="showReconciliationStatementDefaultDateRangePopup"
+                                           v-model="reconciliationStatementPageDefaultDateRangeTypeInMobile">
+                </list-item-selection-popup>
             </f7-list-item>
         </f7-list>
 
@@ -237,10 +327,16 @@ import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
 
 import type { TypeAndDisplayName } from '@/core/base.ts';
 import { CategoryType } from '@/core/category.ts';
+import { TransactionQuickSaveButtonStyle } from '@/core/transaction.ts';
+import { DEFAULT_RECONCILIATION_STATEMENT_DATE_RANGE_IN_MOBILE } from '@/core/statistics.ts';
 
 import { findNameByValue, findDisplayNameByType } from '@/lib/common.ts';
 
-const { tt, getAllTransactionQuickAddButtonActionTypes } = useI18n();
+const {
+    tt,
+    getAllTransactionQuickSaveButtonStyles,
+    getAllTransactionQuickAddButtonActionTypes
+} = useI18n();
 const { showToast } = useI18nUIComponents();
 const {
     loadingAccounts,
@@ -251,17 +347,22 @@ const {
     allTimezoneTypesUsedForStatistics,
     allCurrencySortingTypes,
     allAutoSaveTransactionDraftTypes,
+    allImageUploadQualityTypes,
+    allReconciliationStatementDateRanges,
     showAmountInHomePage,
     timezoneUsedForStatisticsInHomePage,
     showTotalAmountInTransactionListPage,
     showTagInTransactionListPage,
     autoSaveTransactionDraft,
     isAutoGetCurrentGeoLocation,
+    transactionPictureQuality,
+    isAutoUploadTransactionPictureForAIRecognition,
     currencySortByInExchangeRatesPage,
     accountsIncludedInHomePageOverviewDisplayContent,
     accountsIncludedInTotalDisplayContent,
     accountCategorysDisplayOrderContent,
-    transactionCategoriesIncludedInHomePageOverviewDisplayContent
+    transactionCategoriesIncludedInHomePageOverviewDisplayContent,
+    getValidReconciliationStatementPageDefaultDateRangeType
 } = useAppSettingPageBase();
 
 const settingsStore = useSettingsStore();
@@ -269,11 +370,20 @@ const accountsStore = useAccountsStore();
 const transactionCategoriesStore = useTransactionCategoriesStore();
 
 const showTimezoneUsedForStatisticsInHomePagePopup = ref<boolean>(false);
+const showQuickSaveButtonStyleInMobileTransactionListPagePopup = ref<boolean>(false);
 const showQuickAddButtonActionInMobileTransactionEditPagePopup = ref<boolean>(false);
 const showAutoSaveTransactionDraftPopup = ref<boolean>(false);
+const showTransactionPictureQualityPopup = ref<boolean>(false);
+const showReconciliationStatementDefaultDateRangePopup = ref<boolean>(false);
 const showCurrencySortByInExchangeRatesPagePopup = ref<boolean>(false);
 
+const allTransactionQuickSaveButtonStyles = computed<TypeAndDisplayName[]>(() => getAllTransactionQuickSaveButtonStyles());
 const allTransactionQuickAddButtonActionTypes = computed<TypeAndDisplayName[]>(() => getAllTransactionQuickAddButtonActionTypes());
+
+const quickSaveButtonStyleInMobileTransactionListPage = computed<number>({
+    get: () => settingsStore.appSettings.quickSaveButtonStyleInMobileTransactionListPage,
+    set: (value) => settingsStore.setQuickSaveButtonStyleInMobileTransactionListPage(value)
+});
 
 const quickAddButtonActionInMobileTransactionEditPage = computed<number>({
     get: () => settingsStore.appSettings.quickAddButtonActionInMobileTransactionEditPage,
@@ -283,6 +393,11 @@ const quickAddButtonActionInMobileTransactionEditPage = computed<number>({
 const alwaysShowTransactionPicturesInMobileTransactionEditPage = computed<boolean>({
     get: () => settingsStore.appSettings.alwaysShowTransactionPicturesInMobileTransactionEditPage,
     set: (value) => settingsStore.setAlwaysShowTransactionPicturesInMobileTransactionEditPage(value)
+});
+
+const reconciliationStatementPageDefaultDateRangeTypeInMobile = computed<number>({
+    get: () => getValidReconciliationStatementPageDefaultDateRangeType(settingsStore.appSettings.reconciliationStatementPageDefaultDateRangeTypeInMobile, DEFAULT_RECONCILIATION_STATEMENT_DATE_RANGE_IN_MOBILE.type),
+    set: (value: number) => settingsStore.setReconciliationStatementPageDefaultDateRangeTypeInMobile(value)
 });
 
 function init(): void {

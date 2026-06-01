@@ -9,6 +9,9 @@
                 :translate-name="translateName"
                 :amount-value="true" :default-currency="defaultCurrency"
                 :enable-click-item="enableClickItem"
+                :tooltip-extra-column-names="allTooltipExtraColumnNames"
+                :tooltip-extra-column-total-values="showYearOverYear || showPeriodOverPeriod ? getTooltipExtraColumnTotalValues : undefined"
+                :tooltip-extra-column-values="showYearOverYear || showPeriodOverPeriod ? getTooltipExtraColumnValues : undefined"
                 @click="clickItem"
                 v-if="chartDisplayType"
     />
@@ -30,17 +33,30 @@ import {
 import { useUserStore } from '@/stores/user.ts';
 
 import {
+    itemAndIndex
+} from '@/core/base.ts';
+import {
     type Year1BasedMonth,
     type YearMonthDay,
+    type YearUnixTime,
+    type YearQuarterUnixTime,
+    type YearMonthUnixTime,
+    type YearMonthDayUnixTime,
     DateRangeScene
 } from '@/core/datetime.ts';
+import {
+    type FiscalYearUnixTime
+} from '@/core/fiscalyear.ts';
 import {
     ChartDataAggregationType,
     TrendChartType,
     ChartDateAggregationType
 } from '@/core/statistics.ts';
 
-import { isArray, isNumber } from '@/lib/common.ts';
+import {
+    isArray,
+    isNumber
+} from '@/lib/common.ts';
 import {
     parseDateTimeFromUnixTime,
     getYearMonthFirstUnixTime,
@@ -48,6 +64,9 @@ import {
     getDateTypeByDateRange,
     getFiscalYearFromUnixTime
 } from '@/lib/datetime.ts';
+import {
+    getDateRangeKeyWithYearOffset
+} from '@/lib/statistics.ts';
 
 type AxisChartType = InstanceType<typeof AxisChart>;
 
@@ -56,6 +75,8 @@ interface DesktopTrendsChartProps<T extends TrendsChartDateType> extends CommonT
     type?: number;
     showValue?: boolean;
     showTotalAmountInTooltip?: boolean;
+    showYearOverYear?: boolean;
+    showPeriodOverPeriod?: boolean;
 }
 
 const props = defineProps<DesktopTrendsChartProps<TrendsChartDateType>>();
@@ -70,7 +91,8 @@ const {
     formatDateTimeToGregorianLikeShortYear,
     formatDateTimeToGregorianLikeShortYearMonth,
     formatYearQuarterToGregorianLikeYearQuarter,
-    formatDateTimeToGregorianLikeFiscalYear
+    formatDateTimeToGregorianLikeFiscalYear,
+    formatPercentToLocalizedNumerals
 } = useI18n();
 
 const { allDateRanges } = useTrendsChartBase(props);
@@ -89,6 +111,28 @@ const chartDisplayType = computed<AxisChartDisplayType | undefined>(() => {
     } else {
         return undefined;
     }
+});
+
+const allTooltipExtraColumnNames = computed<string[]>(() => {
+    const extraColumnNames: string[] = [];
+
+    if (props.showYearOverYear) {
+        extraColumnNames.push(tt('Year-over-Year'));
+    }
+
+    if (props.showPeriodOverPeriod) {
+        if (props.dateAggregationType === ChartDateAggregationType.Quarter.type) {
+            extraColumnNames.push(tt('Quarter-over-Quarter'));
+        } else if (props.dateAggregationType === ChartDateAggregationType.Month.type) {
+            extraColumnNames.push(tt('Month-over-Month'));
+        } else if (props.dateAggregationType === ChartDateAggregationType.Day.type && props.chartMode === 'daily') {
+            extraColumnNames.push(tt('Day-over-Day'));
+        } else {
+            extraColumnNames.push(tt('Period-over-Period'));
+        }
+    }
+
+    return extraColumnNames;
 });
 
 const allDisplayDateRanges = computed<string[]>(() => {
@@ -188,22 +232,9 @@ const allSeriesData = computed<Record<string, unknown>[]>(() => {
         }
 
         for (const dateRange of allDateRanges.value) {
-            let dateRangeKey = '';
-
-            if (props.dateAggregationType === ChartDateAggregationType.Year.type) {
-                dateRangeKey = dateRange.year.toString();
-            } else if (props.dateAggregationType === ChartDateAggregationType.FiscalYear.type && 'year' in dateRange) {
-                dateRangeKey = dateRange.year.toString();
-            } else if (props.dateAggregationType === ChartDateAggregationType.Quarter.type && 'quarter' in dateRange) {
-                dateRangeKey = `${dateRange.year}-${dateRange.quarter}`;
-            } else if (props.dateAggregationType === ChartDateAggregationType.Month.type && 'month0base' in dateRange) {
-                dateRangeKey = `${dateRange.year}-${dateRange.month0base + 1}`;
-            } else if (props.dateAggregationType === ChartDateAggregationType.Day.type && 'day' in dateRange && props.chartMode === 'daily') {
-                dateRangeKey = `${dateRange.year}-${dateRange.month}-${dateRange.day}`;
-            }
-
-            let amount = 0;
+            const dateRangeKey = getDateRangeKey(dateRange) ?? '';
             const dataItems = dateRangeAmountMap[dateRangeKey];
+            let amount = 0;
 
             if (isArray(dataItems)) {
                 for (const dataItem of dataItems) {
@@ -228,6 +259,164 @@ const allSeriesData = computed<Record<string, unknown>[]>(() => {
 
     return result;
 });
+
+const seriesIdValuesMap = computed<Record<string, number[]>>(() => {
+    const result: Record<string, number[]> = {};
+
+    for (const item of allSeriesData.value) {
+        const id = getSeriesId(item);
+        const values = item['values'] as number[];
+
+        if (id && values) {
+            result[id] = values;
+        }
+    }
+
+    return result;
+});
+
+const yoyIndexMap = computed<Record<number, number>>(() => {
+    const result: Record<number, number> = {};
+    const dateKeyToIndex: Record<string, number> = {};
+
+    for (const [dateRange, index] of itemAndIndex(allDateRanges.value)) {
+        const key = getDateRangeKey(dateRange);
+
+        if (key) {
+            dateKeyToIndex[key] = index;
+        }
+    }
+
+    for (const [dateRange, index] of itemAndIndex(allDateRanges.value)) {
+        const yoyKey = getDateRangeKey(dateRange, -1);
+
+        if (yoyKey && isNumber(dateKeyToIndex[yoyKey])) {
+            result[index] = dateKeyToIndex[yoyKey];
+        }
+    }
+
+    return result;
+});
+
+function getSeriesId(item: Record<string, unknown>): string {
+    if (props.idField && item[props.idField]) {
+        return item[props.idField] as string;
+    }
+
+    const name = item[props.nameField] as string;
+    return props.translateName ? tt(name) : name;
+}
+
+function getDateRangeKey(dateRange: YearUnixTime | FiscalYearUnixTime | YearQuarterUnixTime | YearMonthUnixTime | YearMonthDayUnixTime, yearOffset?: number): string | undefined {
+    if (props.dateAggregationType === ChartDateAggregationType.Day.type && props.chartMode !== 'daily') {
+        return undefined;
+    }
+
+    return getDateRangeKeyWithYearOffset(dateRange, props.dateAggregationType, yearOffset);
+}
+
+function formatDisplayChangeRate(current: number, reference: number): string {
+    if (reference === 0 && current === 0) {
+        return formatPercentToLocalizedNumerals(0, 2, '<0.01');
+    }
+
+    if (reference === 0) {
+        return '-';
+    }
+
+    const rate = (current - reference) / reference * 100;
+    return formatPercentToLocalizedNumerals(rate, 2, '<0.01');
+}
+
+function getTooltipExtraColumnTotalValues(categoryIndex: number, totalValue: number, visibleSeriesIds: string[]): string[] {
+    const extraColumnValues: string[] = [];
+
+    if (!props.showYearOverYear && !props.showPeriodOverPeriod) {
+        return extraColumnValues;
+    }
+
+    if (props.showYearOverYear) {
+        const yoyReferenceIndex = yoyIndexMap.value[categoryIndex];
+        let displayChangeRate = '-';
+
+        if (isNumber(yoyReferenceIndex)) {
+            let referenceTotalValue = 0;
+
+            for (const seriesId of visibleSeriesIds) {
+                const values = seriesIdValuesMap.value[seriesId];
+
+                if (values) {
+                    referenceTotalValue += values[yoyReferenceIndex] ?? 0;
+                }
+            }
+
+            displayChangeRate = formatDisplayChangeRate(totalValue, referenceTotalValue);
+        }
+
+        extraColumnValues.push(displayChangeRate);
+    }
+
+    if (props.showPeriodOverPeriod) {
+        const popReferenceIndex = categoryIndex - 1;
+        let displayChangeRate = '-';
+
+        if (popReferenceIndex >= 0) {
+            let referenceTotalValue = 0;
+
+            for (const seriesId of visibleSeriesIds) {
+                const values = seriesIdValuesMap.value[seriesId];
+
+                if (values) {
+                    referenceTotalValue += values[popReferenceIndex] ?? 0;
+                }
+            }
+
+            displayChangeRate = formatDisplayChangeRate(totalValue, referenceTotalValue);
+        }
+
+        extraColumnValues.push(displayChangeRate);
+    }
+
+    return extraColumnValues;
+}
+
+function getTooltipExtraColumnValues(seriesId: string, categoryIndex: number, currentValue: number): string[] {
+    const extraColumnValues: string[] = [];
+
+    if (!props.showYearOverYear && !props.showPeriodOverPeriod) {
+        return extraColumnValues;
+    }
+
+    const values = seriesIdValuesMap.value[seriesId];
+
+    if (!values) {
+        return extraColumnValues;
+    }
+
+    if (props.showYearOverYear) {
+        const yoyReferenceIndex = yoyIndexMap.value[categoryIndex];
+        let displayChangeRate = '-';
+
+        if (isNumber(yoyReferenceIndex) && yoyReferenceIndex >= 0 && yoyReferenceIndex < values.length) {
+            displayChangeRate = formatDisplayChangeRate(currentValue, values[yoyReferenceIndex] ?? 0);
+        }
+
+        extraColumnValues.push(displayChangeRate);
+    }
+
+    if (props.showPeriodOverPeriod) {
+        const popReferenceIndex = categoryIndex - 1;
+        let displayChangeRate = '-';
+
+        if (popReferenceIndex >= 0 && popReferenceIndex < values.length) {
+            displayChangeRate = formatDisplayChangeRate(currentValue, values[popReferenceIndex] ?? 0);
+        }
+
+        extraColumnValues.push(displayChangeRate);
+    }
+
+    return extraColumnValues;
+}
 
 function clickItem(itemId: string, categoryIndex: number): void {
     const dateRange = allDateRanges.value[categoryIndex];

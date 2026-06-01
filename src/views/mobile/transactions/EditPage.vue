@@ -404,7 +404,11 @@
                                         <f7-icon class="picture-control-icon picture-remove-icon" f7="trash" v-if="pictureInfo.pictureId !== removingPictureId"></f7-icon>
                                         <f7-preloader color="white" :size="28" v-if="pictureInfo.pictureId === removingPictureId" />
                                     </div>
-                                    <img alt="picture" :src="getTransactionPictureUrl(pictureInfo)"/>
+                                    <image-box style="height: 100%" alt="picture" :src="getTransactionPictureUrl(pictureInfo)">
+                                        <template #error>
+                                            {{ tt('Failed to load image, please check whether the config "domain" and "root_url" are set correctly.') }}
+                                        </template>
+                                    </image-box>
                                 </div>
                             </swiper-slide>
                             <swiper-slide @click="showOpenPictureDialog" v-if="canAddTransactionPicture">
@@ -469,14 +473,20 @@
             </f7-actions-group>
         </f7-actions>
 
-        <template #fixed>
-            <f7-fab id="quick-save-fab" position="right-bottom" :class="{ 'disabled': inputIsEmpty || submitting }"
+        <template #fixed v-if="quickSaveButtonStyleType === TransactionQuickSaveButtonStyle.BottomLeftFloating.type || quickSaveButtonStyleType === TransactionQuickSaveButtonStyle.BottomCenterFloating.type || quickSaveButtonStyleType === TransactionQuickSaveButtonStyle.BottomRightFloating.type">
+            <f7-fab id="quick-save-button" :class="{ 'disabled': inputIsEmpty || submitting }" :position="quickSaveButtonFloatingPosition"
                     :text="tt(quickSaveButtonTitle)"
                     @click="quickSave" v-if="mode !== TransactionEditPageMode.View">
             </f7-fab>
         </template>
 
-        <f7-popover class="quick-save-popover" target-el="#quick-save-fab"
+        <f7-toolbar id="quick-save-button" tabbar bottom v-if="quickSaveButtonStyleType === TransactionQuickSaveButtonStyle.BottomFixed.type && mode !== TransactionEditPageMode.View">
+            <f7-link :class="{ 'disabled': inputIsEmpty || submitting }" @click="quickSave">
+                <span class="tabbar-primary-link">{{ tt(quickSaveButtonTitle) }}</span>
+            </f7-link>
+        </f7-toolbar>
+
+        <f7-popover class="quick-save-popover" target-el="#quick-save-button"
                     v-model:opened="showQuickSavePopover">
             <f7-list>
                 <f7-list-item link="#" no-chevron popover-close
@@ -494,7 +504,7 @@
         <f7-photo-browser ref="pictureBrowser" type="popup" navbar-of-text="/"
                           :navbar-show-count="true" :exposition="false"
                           :photos="transactionPictures" :thumbs="transactionThumbs" />
-        <input ref="pictureInput" type="file" style="display: none" :accept="`${SUPPORTED_IMAGE_EXTENSIONS};capture=camera`" @change="uploadPicture($event)" />
+        <input ref="pictureInput" type="file" style="display: none" :accept="`${SUPPORTED_IMAGE_EXTENSIONS};capture=camera`" @change="onUploadPicture($event)" />
     </f7-page>
 </template>
 
@@ -521,8 +531,15 @@ import { useTransactionsStore } from '@/stores/transaction.ts';
 import { useTransactionTemplatesStore } from '@/stores/transactionTemplate.ts';
 
 import { CategoryType } from '@/core/category.ts';
-import { TransactionType, TransactionEditScopeType, TransactionQuickAddButtonActionType } from '@/core/transaction.ts';
+import {
+    TransactionType,
+    TransactionEditScopeType,
+    TransactionQuickSaveButtonStyle,
+    TransactionQuickAddButtonActionType
+} from '@/core/transaction.ts';
 import { ScheduledTemplateFrequencyType, TemplateType } from '@/core/template.ts';
+import { KnownFileType } from '@/core/file.ts';
+
 import { TRANSACTION_MAX_AMOUNT, TRANSACTION_MIN_AMOUNT } from '@/consts/transaction.ts';
 import { KnownErrorCode } from '@/consts/api.ts';
 import { SUPPORTED_IMAGE_EXTENSIONS } from '@/consts/file.ts';
@@ -541,11 +558,13 @@ import { generateRandomUUID } from '@/lib/misc.ts';
 import { getTransactionPrimaryCategoryName, getTransactionSecondaryCategoryName } from '@/lib/category.ts';
 import { type SetTransactionOptions } from '@/lib/transaction.ts';
 import { getMapProvider, isTransactionPicturesEnabled } from '@/lib/server_settings.ts';
+import { compressJpgImageByQuality } from '@/lib/ui/common.ts';
 import logger from '@/lib/logger.ts';
 
 const props = defineProps<{
     f7route: Router.Route;
     f7router: Router.Router;
+    autoUploadPicture?: File;
 }>();
 
 const query = props.f7route.query;
@@ -553,6 +572,7 @@ const pageTypeAndMode = getPageTypeNameMode();
 
 const {
     tt,
+    getMultiMonthAndDayLongNames,
     getMultiMonthdayShortNames,
     getMultiWeekdayLongNames,
     formatDateTimeToLongDate,
@@ -581,6 +601,7 @@ const {
     defaultCurrency,
     firstDayOfWeek,
     coordinateDisplayType,
+    imageUploadQualityType,
     allTimezones,
     allVisibleAccounts,
     allVisibleCategorizedAccounts,
@@ -649,6 +670,20 @@ const showTransactionTagSheet = ref<boolean>(false);
 const showTransactionPictures = ref<boolean>(pageTypeAndMode?.type === TransactionEditPageType.Transaction
     && (pageTypeAndMode?.mode === TransactionEditPageMode.Add || pageTypeAndMode?.mode === TransactionEditPageMode.Edit)
     && settingsStore.appSettings.alwaysShowTransactionPicturesInMobileTransactionEditPage);
+
+const quickSaveButtonStyleType = computed<number>(() => settingsStore.appSettings.quickSaveButtonStyleInMobileTransactionListPage);
+const quickSaveButtonFloatingPosition = computed<string>(() => {
+    switch (settingsStore.appSettings.quickSaveButtonStyleInMobileTransactionListPage) {
+        case TransactionQuickSaveButtonStyle.BottomLeftFloating.type:
+            return 'left-bottom';
+        case TransactionQuickSaveButtonStyle.BottomCenterFloating.type:
+            return 'center-bottom';
+        case TransactionQuickSaveButtonStyle.BottomRightFloating.type:
+            return 'right-bottom';
+        default:
+            return 'right-bottom';
+    }
+});
 
 const sourceAmountClass = computed<Record<string, boolean>>(() => {
     const classes: Record<string, boolean> = {
@@ -754,7 +789,9 @@ const transactionDisplayScheduledFrequency = computed<string>(() => {
         }
     }
 
-    if (template.scheduledFrequencyType === ScheduledTemplateFrequencyType.Weekly.type) {
+    if (template.scheduledFrequencyType === ScheduledTemplateFrequencyType.Daily.type) {
+        return tt('Daily');
+    } else if (template.scheduledFrequencyType === ScheduledTemplateFrequencyType.Weekly.type) {
         if (scheduledFrequencyValues.length) {
             return tt('format.misc.everyMultiDaysOfWeek', {
                 days: getMultiWeekdayLongNames(scheduledFrequencyValues, firstDayOfWeek.value)
@@ -769,6 +806,14 @@ const transactionDisplayScheduledFrequency = computed<string>(() => {
             });
         } else {
             return tt('Monthly');
+        }
+    } else if (template.scheduledFrequencyType === ScheduledTemplateFrequencyType.Yearly.type) {
+        if (scheduledFrequencyValues.length) {
+            return tt('format.misc.everyMultiDaysOfYear', {
+                days: getMultiMonthAndDayLongNames(scheduledFrequencyValues)
+            });
+        } else {
+            return tt('Yearly');
         }
     } else {
         return '';
@@ -982,6 +1027,11 @@ function init(): void {
             }
 
             (transaction.value as TransactionTemplate).fillFrom(template);
+        }
+
+        if (props.autoUploadPicture) {
+            showTransactionPictures.value = true;
+            uploadPicture(props.autoUploadPicture);
         }
 
         loading.value = false;
@@ -1227,25 +1277,19 @@ function showOpenPictureDialog(): void {
     pictureInput.value?.click();
 }
 
-function uploadPicture(event: Event): void {
-    if (!event || !event.target) {
+function uploadPicture(file: File): void {
+    if (!file) {
         return;
     }
-
-    const el = event.target as HTMLInputElement;
-
-    if (!el.files || !el.files.length) {
-        return;
-    }
-
-    const pictureFile = el.files[0] as File;
-
-    el.value = '';
 
     uploadingPicture.value = true;
     submitting.value = true;
 
-    transactionsStore.uploadTransactionPicture({ pictureFile }).then(response => {
+    compressJpgImageByQuality(file, imageUploadQualityType.value).then(blob => {
+        return transactionsStore.uploadTransactionPicture({
+            pictureFile: KnownFileType.JPG.createFileFromBlob(blob, "image")
+        });
+    }).then(response => {
         transaction.value.addPicture(response);
         uploadingPicture.value = false;
         submitting.value = false;
@@ -1291,6 +1335,23 @@ function viewOrRemovePicture(pictureInfo: TransactionPictureInfoBasicResponse): 
 
 function duplicate(withTime?: boolean, withGeoLocation?: boolean): void {
     props.f7router.navigate(`/transaction/add?id=${transaction.value.id}&type=${transaction.value.type}&withTime=${withTime ?? false}&withGeoLocation=${withGeoLocation ?? false}`);
+}
+
+function onUploadPicture(event: Event): void {
+    if (!event || !event.target) {
+        return;
+    }
+
+    const el = event.target as HTMLInputElement;
+
+    if (!el.files || !el.files.length || !el.files[0]) {
+        return;
+    }
+
+    const pictureFile = el.files[0] as File;
+
+    el.value = '';
+    uploadPicture(pictureFile);
 }
 
 function onPageAfterIn(): void {
@@ -1393,13 +1454,17 @@ init();
     height: var(--ebk-transaction-picture-size);
 }
 
-.transaction-picture-container,
-.transaction-picture {
+.transaction-pictures .transaction-picture-container {
     width: var(--ebk-transaction-picture-size);
     height: var(--ebk-transaction-picture-size);
 }
 
-.transaction-picture .transaction-picture-control-backdrop {
+.transaction-pictures .transaction-picture-container .transaction-picture {
+    width: 100%;
+    height: 100%;
+}
+
+.transaction-pictures .transaction-picture-container .transaction-picture .transaction-picture-control-backdrop {
     width: 100%;
     height: 100%;
     position: absolute;
@@ -1408,18 +1473,18 @@ init();
     border-radius: 8px;
 }
 
-.transaction-picture .picture-control-icon {
+.transaction-pictures .transaction-picture-container .transaction-picture .picture-control-icon {
     z-index: 15;
     font-size: var(--ebk-transaction-picture-add-icon-size);
 }
 
-.transaction-picture .picture-remove-icon {
+.transaction-pictures .transaction-picture-container .transaction-picture .picture-remove-icon {
     background-color: transparent;
     color: rgba(255, 255, 255, 0.8);
     font-size: var(--ebk-transaction-picture-remove-icon-size);
 }
 
-.transaction-picture > img {
+.transaction-pictures .transaction-picture-container .transaction-picture img {
     object-fit: cover;
     position: absolute;
     top: 0;
@@ -1429,7 +1494,7 @@ init();
     border-radius: 8px;
 }
 
-.transaction-picture-add {
+.transaction-pictures .transaction-picture-add {
     width: calc(var(--ebk-transaction-picture-size) - 2px);
     height: calc(var(--ebk-transaction-picture-size) - 4px);
     border: 2px dashed #ccc;
