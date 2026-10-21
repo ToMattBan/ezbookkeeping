@@ -12,18 +12,17 @@
     "url": "https://github.com/mayswind/ezbookkeeping/issues"
   },
   "scripts": {
-    "run:server": "go run ezbookkeeping.go server run",
     "serve": "cross-env NODE_ENV=development vite",
     "build": "cross-env NODE_ENV=production vite build",
-    "build:android": "rm -rf dist && pnpm build && npx cap sync && cd ./android && ./gradlew assembleDebug && rm -rf ../output && mkdir -p ../output && cp ./app/build/outputs/apk/debug/app-debug.apk ../output/ezBookKeeping.apk",
+    "build:android": "rm -rf dist && npm run build && npx cap sync && cd ./android && ./gradlew assembleDebug && rm -rf ../output && mkdir -p ../output && cp ./app/build/outputs/apk/debug/app-debug.apk ../output/ezBookKeeping.apk",
     "serve:dist": "vite preview",
     "lint": "vue-tsc --noEmit && eslint . --fix",
     "test": "vitest run"
   },
   "dependencies": {
-    "@capacitor/android": "^8.0.0",
-    "@capacitor/app": "^8.0.0",
-    "@capacitor/core": "^8.0.0",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.5.3",
     "@mdi/js": "7.4.47",
     "@vuepic/vue-datepicker": "14.0.0",
     "axios": "1.20.0",
@@ -56,6 +55,7 @@
     "vuetify": "4.2.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.3",
     "@jest/globals": "30.5.1",
     "@tsconfig/node26": "26.0.1",
     "@types/cbor-js": "0.1.1",
