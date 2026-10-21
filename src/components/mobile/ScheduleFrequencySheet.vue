@@ -4,10 +4,10 @@
         <f7-toolbar class="toolbar-with-swipe-handler">
             <div class="swipe-handler"></div>
             <div class="left">
-                <f7-link sheet-close icon-f7="xmark"></f7-link>
+                <f7-link sheet-close icon-f7="xmark" :aria-label="tt('Close')"></f7-link>
             </div>
             <div class="right">
-                <f7-button round fill icon-f7="checkmark_alt" @click="save"></f7-button>
+                <f7-button round fill icon-f7="checkmark_alt" :aria-label="tt('Apply')" @click="save"></f7-button>
             </div>
         </f7-toolbar>
         <f7-page-content class="margin-top">
@@ -36,6 +36,18 @@
                         <f7-list dividers class="schedule-frequency-value-list no-margin-vertical"
                                  v-if="currentFrequencyType === ScheduledTemplateFrequencyType.Daily.type">
                             <f7-list-item :title="tt('Daily')"></f7-list-item>
+                        </f7-list>
+                        <f7-list dividers class="schedule-frequency-value-list no-margin-vertical"
+                                 v-if="currentFrequencyType === ScheduledTemplateFrequencyType.EveryNDays.type">
+                            <f7-list-item checkbox
+                                          :class="isChecked(n.type) ? 'list-item-selected' : ''"
+                                          :key="n.type"
+                                          :value="n.type"
+                                          :checked="isChecked(n.type)"
+                                          :title="n.displayName"
+                                          v-for="n in allAvailableNDays"
+                                          @change="setFrequencyValue">
+                            </f7-list-item>
                         </f7-list>
                         <f7-list dividers class="schedule-frequency-value-list no-margin-vertical"
                                  v-if="currentFrequencyType === ScheduledTemplateFrequencyType.Weekly.type">
@@ -112,6 +124,7 @@ const {
     allWeekDays,
     allAvailableMonthDays,
     allAvailableMonthAndDays,
+    allAvailableNDays,
     getFrequencyValues
 } = useScheduleFrequencySelectionBase();
 
@@ -132,6 +145,8 @@ function changeFrequencyType(value: number): void {
 
         if (value === ScheduledTemplateFrequencyType.Daily.type) {
             currentFrequencyValue.value = [0];
+        } else if (value === ScheduledTemplateFrequencyType.EveryNDays.type) {
+            currentFrequencyValue.value = [1];
         } else if (value === ScheduledTemplateFrequencyType.Weekly.type) {
             currentFrequencyValue.value = [firstDayOfWeek.value];
         } else if (value === ScheduledTemplateFrequencyType.Monthly.type) {
@@ -141,6 +156,16 @@ function changeFrequencyType(value: number): void {
         } else {
             currentFrequencyValue.value = [];
         }
+    }
+}
+
+function setFrequencyValue(e: Event): void {
+    const currentValue = parseInt((e.target as HTMLInputElement).value);
+
+    if ((e.target as HTMLInputElement).checked) {
+        currentFrequencyValue.value.splice(0, currentFrequencyValue.value.length, currentValue);
+    } else {
+        currentFrequencyValue.value.splice(0, currentFrequencyValue.value.length);
     }
 }
 

@@ -5,11 +5,13 @@
             <div class="swipe-handler"></div>
             <div class="left">
                 <f7-link icon-f7="xmark" :class="{ 'disabled': loading || recognizing }"
+                         :aria-label="tt('Cancel')"
                          @click="cancel"></f7-link>
             </div>
             <div class="right">
                 <f7-button round fill icon-f7="checkmark_alt"
                            :class="{ 'disabled': loading || recognizing || !imageFile }"
+                           :aria-label="tt('Confirm')"
                            @click="confirm"></f7-button>
             </div>
         </f7-toolbar>
@@ -43,14 +45,14 @@ import { ImageUploadQualityType } from '@/core/image.ts';
 import { KnownFileType } from '@/core/file.ts';
 import { SUPPORTED_IMAGE_EXTENSIONS } from '@/consts/file.ts';
 
-import type { RecognizedReceiptImageResponse } from '@/models/large_language_model.ts';
+import type { RecognizedTransactionResponse } from '@/models/large_language_model.ts';
 
 import { generateRandomUUID } from '@/lib/misc.ts';
 import { compressJpgImageByQuality } from '@/lib/ui/common.ts';
 import logger from '@/lib/logger.ts';
 
 export interface AIImageRecognitionResult {
-    response: RecognizedReceiptImageResponse;
+    response: RecognizedTransactionResponse;
     imageFile: File;
 }
 

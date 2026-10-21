@@ -1,5 +1,5 @@
 <template>
-    <v-card-text class="px-5 py-0 mb-4">
+    <v-card-text class="px-4 py-0 mb-4">
         <v-row>
             <v-col cols="12">
                 <div class="d-flex overflow-x-auto align-center gap-2 pt-2">
@@ -12,7 +12,7 @@
                         :disabled="true"
                         :label="tt('Data Source')"
                         :items="allDataTableQuerySources"
-                        :model-value="currentExplorer.datatableQuerySource"
+                        :model-value="currentExploration.datatableQuerySource"
                     />
                     <v-select
                         class="flex-0-0"
@@ -23,11 +23,11 @@
                         :disabled="loading || disabled"
                         :label="tt('Transactions Per Page')"
                         :items="allPageCounts"
-                        v-model="currentExplorer.countPerPage"
+                        v-model="currentExploration.countPerPage"
                     />
                     <v-spacer/>
                     <div class="d-flex align-center">
-                        <span class="text-subtitle-1">
+                        <span class="text-body-large">
                             {{ tt('format.misc.selectedCount', { count: formatNumberToLocalizedNumerals(selectedTransactionCount), totalCount: formatNumberToLocalizedNumerals(filteredTransactions.length) }) }}
                         </span>
                     </div>
@@ -40,11 +40,11 @@
         fixed-footer
         multi-sort
         item-value="index"
-        :class="{ 'insights-editable-explorer-table': true, 'text-sm': true, 'disabled': loading || disabled, 'loading-skeleton': loading }"
+        :class="{ 'insights-editable-explorer-table': true, 'disabled': loading || disabled, 'loading-skeleton': loading }"
         :headers="editableDataTableHeaders"
         :items="filteredTransactions"
         :hover="true"
-        v-model:items-per-page="currentExplorer.countPerPage"
+        v-model:items-per-page="currentExploration.countPerPage"
         v-model:page="currentPage"
     >
         <template #header.data-table-select>
@@ -127,10 +127,12 @@
                         v-model="selectedTransactions[item.id]"></v-checkbox>
         </template>
         <template #item.time="{ item }">
-            <span>{{ getDisplayDateTime(item) }}</span>
-            <v-chip class="ms-1" variant="flat" color="grey" size="x-small"
-                    v-if="!isSameAsDefaultTimezoneOffsetMinutes(item)">{{ getDisplayTimezone(item) }}</v-chip>
-            <v-tooltip activator="parent" v-if="!isSameAsDefaultTimezoneOffsetMinutes(item)">{{ getDisplayTimeInDefaultTimezone(item) }}</v-tooltip>
+            <div class="d-flex align-center">
+                <span>{{ getDisplayDateTime(item) }}</span>
+                <v-chip class="ms-1" variant="flat" color="grey" size="x-small"
+                        v-if="!isSameAsDefaultTimezoneOffsetMinutes(item)">{{ getDisplayTimezone(item) }}</v-chip>
+                <v-tooltip activator="parent" v-if="!isSameAsDefaultTimezoneOffsetMinutes(item)">{{ getDisplayTimeInDefaultTimezone(item) }}</v-tooltip>
+            </div>
         </template>
         <template #item.type="{ item }">
             <v-chip label variant="outlined" size="x-small"
@@ -139,15 +141,15 @@
         </template>
         <template #item.secondaryCategoryName="{ item }">
             <div class="d-flex align-center">
-                <ItemIcon size="24px" icon-type="category"
+                <ItemIcon size="24px" :icon-type="getCategoryIconType(item.secondaryCategory?.iconType)"
                           :icon-id="item.secondaryCategory?.icon ?? ''"
                           :color="item.secondaryCategory?.color ?? ''"
                           v-if="item.secondaryCategory?.color"></ItemIcon>
                 <v-icon size="24" :icon="mdiPencilBoxOutline" v-else-if="!item.secondaryCategory || !item.secondaryCategory?.color" />
-                <span class="ms-2" v-if="item.type === TransactionType.ModifyBalance">
+                <span class="ms-1" v-if="item.type === TransactionType.ModifyBalance">
                     {{ tt('Modify Balance') }}
                 </span>
-                <span class="ms-2" v-else-if="item.type !== TransactionType.ModifyBalance && item.secondaryCategory">
+                <span class="ms-1" v-else-if="item.type !== TransactionType.ModifyBalance && item.secondaryCategory">
                     {{ item.secondaryCategory?.name }}
                 </span>
             </div>
@@ -156,6 +158,11 @@
             <span :class="{ 'text-expense': item.type === TransactionType.Expense, 'text-income': item.type === TransactionType.Income }">{{ getDisplaySourceAmount(item) }}</span>
             <v-icon class="icon-with-direction mx-1" size="13" :icon="mdiArrowRight" v-if="item.type === TransactionType.Transfer && item.sourceAccount?.id !== item.destinationAccount?.id && getDisplaySourceAmount(item) !== getDisplayDestinationAmount(item)"></v-icon>
             <span v-if="item.type === TransactionType.Transfer && item.sourceAccount?.id !== item.destinationAccount?.id && getDisplaySourceAmount(item) !== getDisplayDestinationAmount(item)">{{ getDisplayDestinationAmount(item) }}</span>
+            <v-tooltip activator="parent" v-if="!item.hideAmount && ((item.type !== TransactionType.Transfer && item.sourceAccount?.currency !== defaultCurrency) || (item.type === TransactionType.Transfer && item.sourceAccount?.currency !== defaultCurrency && item.destinationAccount?.currency !== defaultCurrency))">
+                <span>{{ getDisplaySourceAmount(item, true) }}</span>
+                <v-icon class="ms-1" size="13" :icon="mdiArrowRight" v-if="item.type === TransactionType.Transfer && item.sourceAccount?.id !== item.destinationAccount?.id && item.sourceAccount?.currency !== item.destinationAccount?.currency && item.sourceAmount !== item.destinationAmount"></v-icon>
+                <span v-if="item.type === TransactionType.Transfer && item.sourceAccount?.id !== item.destinationAccount?.id && item.sourceAccount?.currency !== item.destinationAccount?.currency && item.sourceAmount !== item.destinationAmount">{{ getDisplayDestinationAmount(item, true) }}</span>
+            </v-tooltip>
         </template>
         <template #item.sourceAccountName="{ item }">
             <div class="d-flex align-center">
@@ -193,7 +200,8 @@
         </template>
         <template #bottom>
             <div class="title-and-toolbar d-flex align-center justify-center text-no-wrap mt-2 mb-4">
-                <pagination-buttons :disabled="loading || disabled"
+                <pagination-buttons density="comfortable"
+                                    :disabled="loading || disabled"
                                     :totalPageCount="totalPageCount"
                                     v-model="currentPage">
                 </pagination-buttons>
@@ -227,6 +235,7 @@ import { TransactionType } from '@/core/transaction.ts';
 import type { TransactionInsightDataItem } from '@/models/transaction.ts';
 
 import { getObjectOwnFieldWithValueCount } from '@/lib/common.ts';
+import { getCategoryIconType } from '@/lib/icon.ts';
 
 import {
     mdiArrowRight,
@@ -271,7 +280,8 @@ const {
 
 const {
     currentPage,
-    currentExplorer,
+    defaultCurrency,
+    currentExploration,
     filteredTransactions,
     allDataTableQuerySources,
     allPageCounts,
@@ -460,6 +470,8 @@ watch(() => filteredTransactions.value, newValue => {
     margin-inline-end: 4px;
     margin-top: 2px;
     margin-bottom: 2px;
+    padding-inline: 12px;
+    border-radius: var(--ebk-radius-lg);
 }
 
 .v-table.insights-editable-explorer-table .v-chip.transaction-tag > .v-chip__content {

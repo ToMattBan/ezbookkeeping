@@ -21,9 +21,11 @@ export interface ApplicationCloudSettingItem {
 
 export const ALL_APPLICATION_CLOUD_SETTINGS: CategorizedApplicationCloudSettingItems[] = [
     {
-        categoryName: 'Basic Settings',
+        categoryName: 'General Settings',
         items: [
             { settingKey: 'showAccountBalance', settingName: 'Show Account Balance', mobile: true, desktop: true },
+            { settingKey: 'accountCategoryOrders', settingName: 'Account Category Order', mobile: true, desktop: true },
+            { settingKey: 'chartColors', settingName: 'Chart Color Scheme', mobile: true, desktop: true },
             { settingKey: 'autoUpdateExchangeRatesData', settingName: 'Auto-update Exchange Rates Data', mobile: true, desktop: true }
         ]
     },
@@ -36,6 +38,8 @@ export const ALL_APPLICATION_CLOUD_SETTINGS: CategorizedApplicationCloudSettingI
     {
         categoryName: 'Overview Page',
         items: [
+            { settingKey: 'desktopOverviewPageLayout', settingName: 'Desktop Home Page Layout', mobile: false, desktop: true },
+            { settingKey: 'mobileOverviewPageLayout', settingName: 'Mobile Home Page Layout', mobile: true, desktop: false },
             { settingKey: 'showAmountInHomePage', settingName: 'Show Amount', mobile: true, desktop: true },
             { settingKey: 'timezoneUsedForStatisticsInHomePage', settingName: 'Timezone Used for Statistics', mobile: true, desktop: true },
             { settingKey: 'overviewAccountFilterInHomePage', settingName: 'Accounts Included in Overview Statistics', mobile: true, desktop: true },
@@ -47,7 +51,8 @@ export const ALL_APPLICATION_CLOUD_SETTINGS: CategorizedApplicationCloudSettingI
         items: [
             { settingKey: 'itemsCountInTransactionListPage', settingName: 'Transactions Per Page', mobile: false, desktop: true },
             { settingKey: 'showTotalAmountInTransactionListPage', settingName: 'Show Monthly Total Amount', mobile: true, desktop: true },
-            { settingKey: 'showTagInTransactionListPage', settingName: 'Show Transaction Tags', mobile: true, desktop: true }
+            { settingKey: 'showTagInTransactionListPage', settingName: 'Show Transaction Tags', mobile: true, desktop: true },
+            { settingKey: 'defaultKeywordMatchModeInTransactionListPage', settingName: 'Default Keyword Search Matching Mode', mobile: true, desktop: true }
         ]
     },
     {
@@ -59,6 +64,12 @@ export const ALL_APPLICATION_CLOUD_SETTINGS: CategorizedApplicationCloudSettingI
             { settingKey: 'autoGetCurrentGeoLocation', settingName: 'Automatically Add Geolocation', mobile: true, desktop: true },
             { settingKey: 'alwaysShowTransactionPicturesInMobileTransactionEditPage', settingName: 'Always Show Transaction Pictures', mobile: true, desktop: false },
             { settingKey: 'transactionPictureQuality', settingName: 'Transaction Picture Upload Quality', mobile: true, desktop: false }
+        ]
+    },
+    {
+        categoryName: 'AI Clipboard Text Recognition',
+        items: [
+            { settingKey: 'alwaysRequireConfirmationOfClipboardContentBeforeSubmission', settingName: 'Always Require Confirmation of Clipboard Content Before Submission', mobile: true, desktop: true }
         ]
     },
     {
@@ -84,8 +95,8 @@ export const ALL_APPLICATION_CLOUD_SETTINGS: CategorizedApplicationCloudSettingI
         categoryName: 'Account List Page',
         items: [
             { settingKey: 'totalAmountExcludeAccountIds', settingName: 'Accounts Included in Total', mobile: true, desktop: true },
-            { settingKey: 'accountCategoryOrders', settingName: 'Account Category Order', mobile: true, desktop: true },
             { settingKey: 'hideCategoriesWithoutAccounts', settingName: 'Hide Categories Without Accounts', mobile: false, desktop: true },
+            { settingKey: 'defaultCreditCardAmountDisplayTypeInMobile', settingName: 'Default Credit Card Amount', mobile: true, desktop: false },
             { settingKey: 'reconciliationStatementButtonDefaultDateRangeTypeInDesktop', settingName: 'Default Date Range for Reconciliation Statement Button', mobile: false, desktop: true },
             { settingKey: 'reconciliationStatementPageDefaultDateRangeTypeInMobile', settingName: 'Default Date Range for Reconciliation Statement Page', mobile: true, desktop: false }
         ]
@@ -111,6 +122,7 @@ export const ALL_APPLICATION_CLOUD_SETTINGS: CategorizedApplicationCloudSettingI
             { settingKey: 'statistics.defaultTimezoneType', settingName: 'Timezone Used for Date Range', mobile: true, desktop: true },
             { settingKey: 'statistics.defaultAccountFilter', settingName: 'Default Account Filter', mobile: true, desktop: true },
             { settingKey: 'statistics.defaultTransactionCategoryFilter', settingName: 'Default Transaction Category Filter', mobile: true, desktop: true },
+            { settingKey: 'statistics.defaultKeywordMatchMode', settingName: 'Default Keyword Search Matching Mode', mobile: true, desktop: true },
             { settingKey: 'statistics.defaultSortingType', settingName: 'Default Sort Order', mobile: true, desktop: true }
         ]
     },

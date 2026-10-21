@@ -18,10 +18,14 @@
                      v-model="dateTime">
         <template #day="{ day, date }">
             <div class="transaction-calendar-daily-amounts">
-                <span :class="dayHasTransactionClass && dailyTotalAmounts && dailyTotalAmounts[day] ? dayHasTransactionClass : undefined">{{ getDisplayDay(date) }}</span>
+                <span :class="dayHasTransactionClass && hasVisibleAmount(day) ? dayHasTransactionClass : undefined">{{ getDisplayDay(date) }}</span>
                 <span class="transaction-calendar-alternate-date" v-if="alternateDates && alternateDates[`${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`]">{{ alternateDates[`${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`] }}</span>
-                <span class="transaction-calendar-daily-amount text-income" v-if="dailyTotalAmounts && dailyTotalAmounts[day] && dailyTotalAmounts[day].income">{{ getDisplayMonthTotalAmount(dailyTotalAmounts[day].income, defaultCurrency, '', dailyTotalAmounts[day].incompleteIncome) }}</span>
-                <span class="transaction-calendar-daily-amount text-expense" v-if="dailyTotalAmounts && dailyTotalAmounts[day] && dailyTotalAmounts[day].expense">{{ getDisplayMonthTotalAmount(dailyTotalAmounts[day].expense, defaultCurrency, '', dailyTotalAmounts[day].incompleteExpense) }}</span>
+                <span class="transaction-calendar-daily-amount text-income" v-if="showAmount && showIncomeAmount && dailyTotalAmounts && dailyTotalAmounts[day] && dailyTotalAmounts[day].income && !dailyTotalAmounts[day].income.isZero()">{{ getDisplayMonthTotalAmount(dailyTotalAmounts[day].income, defaultCurrency, '', dailyTotalAmounts[day].incompleteIncome) }}</span>
+                <span class="transaction-calendar-daily-amount text-expense" v-if="showAmount && showExpenseAmount && dailyTotalAmounts && dailyTotalAmounts[day] && dailyTotalAmounts[day].expense && !dailyTotalAmounts[day].expense.isZero()">{{ getDisplayMonthTotalAmount(dailyTotalAmounts[day].expense, defaultCurrency, '', dailyTotalAmounts[day].incompleteExpense) }}</span>
+                <span class="transaction-calendar-daily-amount" v-if="!showAmount">
+                    <span class="transaction-calendar-daily-amount-dot text-income" v-if="showIncomeAmount && dailyTotalAmounts && dailyTotalAmounts[day] && dailyTotalAmounts[day].income && !dailyTotalAmounts[day].income.isZero()"></span>
+                    <span class="transaction-calendar-daily-amount-dot text-expense" v-if="showExpenseAmount && dailyTotalAmounts && dailyTotalAmounts[day] && dailyTotalAmounts[day].expense && !dailyTotalAmounts[day].expense.isZero()"></span>
+                </span>
             </div>
         </template>
     </vue-date-picker>
@@ -34,6 +38,7 @@ import { useI18n } from '@/locales/helpers.ts';
 import { useUserStore } from '@/stores/user.ts';
 import type { TransactionTotalAmount } from '@/stores/transaction.ts';
 
+import type { BigDecimal } from '@/core/numeral.ts';
 import type { CalendarAlternateDate, TextualYearMonthDay, WeekDayValue } from '@/core/datetime.ts';
 import { INCOMPLETE_AMOUNT_SUFFIX } from '@/consts/numeral.ts';
 
@@ -48,6 +53,10 @@ const props = defineProps<{
     maxDate: Date;
     weekDayNameType?: 'long' | 'short';
     dailyTotalAmounts?: Record<string, TransactionTotalAmount>;
+    showAmount?: boolean;
+    showIncomeAmount?: boolean;
+    showExpenseAmount?: boolean;
+    showAlternateDate?: boolean;
     readonly?: boolean;
     calendarClass?: string;
     dayHasTransactionClass?: string;
@@ -76,6 +85,10 @@ const dateTime = computed<TextualYearMonthDay | ''>({
 });
 
 const alternateDates = computed<Record<TextualYearMonthDay, string> | undefined>(() => {
+    if (!props.showAlternateDate) {
+        return undefined;
+    }
+
     const yearMonthDay = props.modelValue ? props.modelValue.split('-') : null;
 
     if (!yearMonthDay || yearMonthDay.length !== 3) {
@@ -98,10 +111,20 @@ const alternateDates = computed<Record<TextualYearMonthDay, string> | undefined>
 });
 
 function noTransactionInMonthDay(date: Date): boolean {
-    return !props.dailyTotalAmounts || !props.dailyTotalAmounts[date.getDate()];
+    return !hasVisibleAmount(date.getDate());
 }
 
-function getDisplayMonthTotalAmount(amount: number, currency: string | false, symbol: string, incomplete: boolean): string {
+function hasVisibleAmount(day: number): boolean {
+    const dailyTotalAmount = props.dailyTotalAmounts?.[day];
+
+    if (!dailyTotalAmount) {
+        return false;
+    }
+
+    return !!(props.showIncomeAmount && dailyTotalAmount.income && !dailyTotalAmount.income.isZero()) || !!(props.showExpenseAmount && dailyTotalAmount.expense && !dailyTotalAmount.expense.isZero());
+}
+
+function getDisplayMonthTotalAmount(amount: BigDecimal, currency: string | false, symbol: string, incomplete: boolean): string {
     const displayAmount = formatAmountToLocalizedNumeralsWithCurrency(amount, currency);
     return symbol + displayAmount + (incomplete ? INCOMPLETE_AMOUNT_SUFFIX : '');
 }
@@ -121,15 +144,28 @@ function getDisplayDay(date: Date): string {
 
 .transaction-calendar-alternate-date {
     margin-top: -3px;
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
-.dp__cell_disabled .transaction-calendar-alternate-date {
+.transaction-calendar-daily-amount-dot {
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: currentColor;
+    vertical-align: middle;
+}
+
+.transaction-calendar-daily-amount-dot + .transaction-calendar-daily-amount-dot {
+    margin-inline-start: 2px;
+}
+
+.dp--cell-disabled .transaction-calendar-alternate-date {
     opacity: 0.8;
 }
 
-.dp__main.transaction-calendar .dp__calendar .dp__calendar_row > .dp__calendar_item .transaction-calendar-daily-amounts > span.transaction-calendar-alternate-date,
-.dp__main.transaction-calendar .dp__calendar .dp__calendar_row > .dp__calendar_item .transaction-calendar-daily-amounts > span.transaction-calendar-daily-amount {
+.dp--main.transaction-calendar .dp--calendar .dp--calendar-row > .dp--calendar-item .transaction-calendar-daily-amounts > span.transaction-calendar-alternate-date,
+.dp--main.transaction-calendar .dp--calendar .dp--calendar-row > .dp--calendar-item .transaction-calendar-daily-amounts > span.transaction-calendar-daily-amount {
     display: block;
     width: 100%;
     overflow: hidden;

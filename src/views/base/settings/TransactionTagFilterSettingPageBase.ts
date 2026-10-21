@@ -7,6 +7,7 @@ import { useTransactionsStore } from '@/stores/transaction.ts';
 import { useStatisticsStore } from '@/stores/statistics.ts';
 
 import { entries, keys, values } from '@/core/base.ts';
+import { NormalizedText } from '@/core/text.ts';
 import { TransactionTagFilterType } from '@/core/transaction.ts';
 import { DEFAULT_TAG_GROUP_ID } from '@/consts/tag.ts';
 
@@ -54,7 +55,7 @@ export function useTransactionTagFilterSettingPageBase(type?: string) {
     const tagFilterStateMap = ref<Record<string, TransactionTagFilterState>>({});
     const groupTagFilterTypesMap = ref<Record<string, TransactionGroupTagFilterTypes>>(getEmptyGroupTagFilterTypesMap(transactionTagsStore.allTransactionTagsByGroupMap));
 
-    const lowerCaseFilterContent = computed<string>(() => filterContent.value.toLowerCase());
+    const normalizedFilterContent = computed<string>(() => NormalizedText.normalizeForSearch(filterContent.value));
 
     const title = computed<string>(() => {
         return 'Filter Transaction Tags';
@@ -118,7 +119,7 @@ export function useTransactionTagFilterSettingPageBase(type?: string) {
                     continue;
                 }
 
-                if (lowerCaseFilterContent.value && !tag.name.toLowerCase().includes(lowerCaseFilterContent.value)) {
+                if (normalizedFilterContent.value && !NormalizedText.normalizeForSearch(tag.name).includes(normalizedFilterContent.value)) {
                     continue;
                 }
 
@@ -144,13 +145,15 @@ export function useTransactionTagFilterSettingPageBase(type?: string) {
         return false;
     });
 
-    function loadFilterTagIds(): boolean {
+    function loadFilterTagIds(customTagFilter?: string): boolean {
         let tagFilters: TransactionTagFilter[] = [];
 
         if (type === 'statisticsCurrent') {
             tagFilters = TransactionTagFilter.parse(statisticsStore.transactionStatisticsFilter.tagFilter);
         } else if (type === 'transactionListCurrent') {
             tagFilters = TransactionTagFilter.parse(transactionsStore.transactionsFilter.tagFilter);
+        } else if (type === 'custom') {
+            tagFilters = TransactionTagFilter.parse(customTagFilter ?? '');
         } else {
             return false;
         }
@@ -199,8 +202,9 @@ export function useTransactionTagFilterSettingPageBase(type?: string) {
         return true;
     }
 
-    function saveFilterTagIds(): boolean {
+    function saveFilterTagIds(): [boolean, string] {
         const tagFilters: TransactionTagFilter[] = [];
+        let textualTagFilter: string = '';
         let changed = true;
 
         for (const [groupId, tags] of entries(transactionTagsStore.allTransactionTagsByGroupMap)) {
@@ -232,9 +236,11 @@ export function useTransactionTagFilterSettingPageBase(type?: string) {
             }
         }
 
+        textualTagFilter = TransactionTagFilter.toTextualTagFilters(tagFilters);
+
         if (type === 'statisticsCurrent') {
             changed = statisticsStore.updateTransactionStatisticsFilter({
-                tagFilter: TransactionTagFilter.toTextualTagFilters(tagFilters)
+                tagFilter: textualTagFilter
             });
 
             if (changed) {
@@ -242,7 +248,7 @@ export function useTransactionTagFilterSettingPageBase(type?: string) {
             }
         } else if (type === 'transactionListCurrent') {
             changed = transactionsStore.updateTransactionListFilter({
-                tagFilter: TransactionTagFilter.toTextualTagFilters(tagFilters)
+                tagFilter: textualTagFilter
             });
 
             if (changed) {
@@ -250,7 +256,7 @@ export function useTransactionTagFilterSettingPageBase(type?: string) {
             }
         }
 
-        return changed;
+        return [changed, textualTagFilter];
     }
 
     return {

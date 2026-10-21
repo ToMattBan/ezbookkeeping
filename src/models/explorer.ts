@@ -1,4 +1,5 @@
 import { type PartialRecord, itemAndIndex, keysIfValueEquals } from '@/core/base.ts';
+import { NormalizedText } from '@/core/text.ts';
 import { type DateTime } from '@/core/datetime.ts';
 import { TimezoneTypeForStatistics } from '@/core/timezone.ts';
 import { AccountType } from '@/core/account.ts';
@@ -18,7 +19,8 @@ import {
     TransactionExplorerDataDimensionType,
     TransactionExplorerDataDimension,
     TransactionExplorerValueMetricType,
-    TransactionExplorerValueMetric
+    TransactionExplorerValueMetric,
+    TransactionExplorerCustomChartDisplayLayout
 } from '@/core/explorer.ts';
 
 import { Account } from '@/models/account.ts';
@@ -75,6 +77,8 @@ export class InsightsExplorer implements InsightsExplorerInfoResponse {
     public amountRangeCount: number;
     public valueMetric: TransactionExplorerValueMetricType;
     public chartSortingType: number;
+    public customChartDisplayLayout: number;
+    public customChartScript: string;
 
     public static readonly Default: InsightsExplorer = new InsightsExplorer(
         '',
@@ -90,10 +94,12 @@ export class InsightsExplorer implements InsightsExplorerInfoResponse {
         TransactionExplorerDataDimension.SeriesDimensionDefault.value,
         5,
         TransactionExplorerValueMetric.Default.value,
-        ChartSortingType.Default.type
+        ChartSortingType.Default.type,
+        TransactionExplorerCustomChartDisplayLayout.Default.type,
+        ''
     );
 
-    private constructor(id: string, name: string, displayOrder: number, hidden: boolean, queries: TransactionExplorerQuery[], timezoneUsedForDateRange: number, datatableQuerySource: string, countPerPage: number, chartType: TransactionExplorerChartTypeValue, categoryDimension: TransactionExplorerDataDimensionType, seriesDimension: TransactionExplorerDataDimensionType, amountRangeCount: number, valueMetric: TransactionExplorerValueMetricType, chartSortingType: number) {
+    private constructor(id: string, name: string, displayOrder: number, hidden: boolean, queries: TransactionExplorerQuery[], timezoneUsedForDateRange: number, datatableQuerySource: string, countPerPage: number, chartType: TransactionExplorerChartTypeValue, categoryDimension: TransactionExplorerDataDimensionType, seriesDimension: TransactionExplorerDataDimensionType, amountRangeCount: number, valueMetric: TransactionExplorerValueMetricType, chartSortingType: number, customChartDisplayLayout: number, customChartScript: string) {
         this.id = id;
         this.name = name;
         this.displayOrder = displayOrder;
@@ -108,6 +114,8 @@ export class InsightsExplorer implements InsightsExplorerInfoResponse {
         this.amountRangeCount = amountRangeCount;
         this.valueMetric = valueMetric;
         this.chartSortingType = chartSortingType;
+        this.customChartDisplayLayout = customChartDisplayLayout;
+        this.customChartScript = customChartScript;
     }
 
     public get data(): Record<string, string | number | object[]> {
@@ -121,8 +129,14 @@ export class InsightsExplorer implements InsightsExplorerInfoResponse {
             seriesDimension: this.seriesDimension,
             amountRangeCount: this.amountRangeCount,
             valueMetric: this.valueMetric,
-            chartSortingType: this.chartSortingType
+            chartSortingType: this.chartSortingType,
+            customChartDisplayLayout: this.customChartDisplayLayout,
+            customChartScript: this.customChartScript
         };
+    }
+
+    public getQueryiesPrettyJson(): string {
+        return JSON.stringify(this.queries.map(q => q.toJsonObject()), null, 4);
     }
 
     public toCreateRequest(clientSessionId: string): InsightsExplorerCreateRequest {
@@ -154,6 +168,8 @@ export class InsightsExplorer implements InsightsExplorerInfoResponse {
         let amountRangeCount = InsightsExplorer.Default.amountRangeCount;
         let valueMetric = InsightsExplorer.Default.valueMetric;
         let chartSortingType = InsightsExplorer.Default.chartSortingType;
+        let customChartDisplayLayout = InsightsExplorer.Default.customChartDisplayLayout;
+        let customChartScript = InsightsExplorer.Default.customChartScript;
         let hasDatatableQuerySource = false;
 
         if (data) {
@@ -193,6 +209,14 @@ export class InsightsExplorer implements InsightsExplorerInfoResponse {
                 chartSortingType = data['chartSortingType'] as number;
             }
 
+            if (typeof data['customChartDisplayLayout'] === 'number') {
+                customChartDisplayLayout = data['customChartDisplayLayout'] as number;
+            }
+
+            if (typeof data['customChartScript'] === 'string') {
+                customChartScript = data['customChartScript'] as string;
+            }
+
             if (Array.isArray(data['queries'])) {
                 const queryItems = data['queries'] as object[];
 
@@ -228,7 +252,9 @@ export class InsightsExplorer implements InsightsExplorerInfoResponse {
             seriesDimension,
             amountRangeCount,
             valueMetric,
-            chartSortingType
+            chartSortingType,
+            customChartDisplayLayout,
+            customChartScript
         );
     }
 
@@ -247,7 +273,9 @@ export class InsightsExplorer implements InsightsExplorerInfoResponse {
             InsightsExplorer.Default.seriesDimension,
             InsightsExplorer.Default.amountRangeCount,
             InsightsExplorer.Default.valueMetric,
-            InsightsExplorer.Default.chartSortingType
+            InsightsExplorer.Default.chartSortingType,
+            InsightsExplorer.Default.customChartDisplayLayout,
+            InsightsExplorer.Default.customChartScript
         );
     }
 }
@@ -356,6 +384,12 @@ export class TransactionExplorerQuery {
                 break;
             case TransactionExplorerConditionField.Description:
                 condition = new TransactionExplorerDescriptionCondition(TransactionExplorerConditionOperatorType.Contains, '');
+                break;
+            case TransactionExplorerConditionField.DescriptionCaseInsensitive:
+                condition = new TransactionExplorerDescriptionCaseInsensitiveCondition(TransactionExplorerConditionOperatorType.Contains, '');
+                break;
+            case TransactionExplorerConditionField.DescriptionNormalized:
+                condition = new TransactionExplorerDescriptionNormalizedCondition(TransactionExplorerConditionOperatorType.Contains, '');
                 break;
             default:
                 condition = new TransactionExplorerTransactionTypeCondition(TransactionExplorerConditionOperatorType.In, [ TransactionType.Expense, TransactionType.Income, TransactionType.Transfer ]);
@@ -718,6 +752,12 @@ export class TransactionExplorerConditionWithRelation {
             case TransactionExplorerConditionField.Description.value:
                 operatorTypes = TransactionExplorerDescriptionCondition.supportedOperators;
                 break;
+            case TransactionExplorerConditionField.DescriptionCaseInsensitive.value:
+                operatorTypes = TransactionExplorerDescriptionCaseInsensitiveCondition.supportedOperators;
+                break;
+            case TransactionExplorerConditionField.DescriptionNormalized.value:
+                operatorTypes = TransactionExplorerDescriptionNormalizedCondition.supportedOperators;
+                break;
             default:
                 return [];
         }
@@ -853,6 +893,16 @@ export class TransactionExplorerConditionWithRelation {
                         condition = new TransactionExplorerDescriptionCondition(conditionOperator as DescriptionConditionOperator, conditionValue);
                     }
                     break;
+                case TransactionExplorerConditionField.DescriptionCaseInsensitive.value:
+                    if (TransactionExplorerDescriptionCaseInsensitiveCondition.supportedOperators[conditionOperator] && typeof conditionValue === 'string') {
+                        condition = new TransactionExplorerDescriptionCaseInsensitiveCondition(conditionOperator as DescriptionConditionOperator, conditionValue);
+                    }
+                    break;
+                case TransactionExplorerConditionField.DescriptionNormalized.value:
+                    if (TransactionExplorerDescriptionNormalizedCondition.supportedOperators[conditionOperator] && typeof conditionValue === 'string') {
+                        condition = new TransactionExplorerDescriptionNormalizedCondition(conditionOperator as DescriptionConditionOperator, conditionValue);
+                    }
+                    break;
                 default:
                     break;
             }
@@ -872,6 +922,7 @@ export class TransactionExplorerConditionWithRelation {
 
 export interface InsightsExplorerMatchContext {
     getTransactionDateTime(): DateTime;
+    getNormalizedDescription(): NormalizedText;
 }
 
 export interface TransactionExplorerCondition<T = TransactionExplorerConditionFieldType, V = string | string[] | number[]> {
@@ -1788,6 +1839,7 @@ export class TransactionExplorerPicturesCondition implements TransactionExplorer
     }
 }
 
+type DescriptionConditionField = TransactionExplorerConditionFieldType.Description | TransactionExplorerConditionFieldType.DescriptionCaseInsensitive | TransactionExplorerConditionFieldType.DescriptionNormalized;
 type DescriptionConditionOperator = TransactionExplorerConditionOperatorType.IsEmpty |
     TransactionExplorerConditionOperatorType.IsNotEmpty |
     TransactionExplorerConditionOperatorType.Equals |
@@ -1801,7 +1853,13 @@ type DescriptionConditionOperator = TransactionExplorerConditionOperatorType.IsE
     TransactionExplorerConditionOperatorType.RegexMatch |
     TransactionExplorerConditionOperatorType.NotRegexMatch;
 
-export class TransactionExplorerDescriptionCondition implements TransactionExplorerCondition<TransactionExplorerConditionFieldType.Description, string> {
+enum DescriptionMatchMode {
+    Exact,
+    CaseInsensitive,
+    Normalized
+}
+
+export abstract class AbstractTransactionExplorerDescriptionCondition<T = DescriptionConditionField> implements TransactionExplorerCondition<T, string> {
     public static readonly supportedOperators: PartialRecord<TransactionExplorerConditionOperatorType, true> = {
         [TransactionExplorerConditionOperatorType.IsEmpty]: true,
         [TransactionExplorerConditionOperatorType.IsNotEmpty]: true,
@@ -1816,12 +1874,13 @@ export class TransactionExplorerDescriptionCondition implements TransactionExplo
         [TransactionExplorerConditionOperatorType.RegexMatch]: true,
         [TransactionExplorerConditionOperatorType.NotRegexMatch]: true
     };
-    private static cachedRegex: RegExp | undefined = undefined;
-    private static cachedRegexPattern: string | undefined = undefined;
 
-    public readonly field = TransactionExplorerConditionFieldType.Description;
+    public abstract readonly field: T;
     public readonly operator: DescriptionConditionOperator = TransactionExplorerConditionOperatorType.Contains;
     public value: string;
+    protected abstract readonly matchMode: DescriptionMatchMode;
+    private cachedNormalizedValue: NormalizedText | undefined = undefined;
+    private cachedRegex: RegExp | undefined = undefined;
 
     constructor(operator: DescriptionConditionOperator, value: string) {
         this.operator = operator;
@@ -1836,29 +1895,39 @@ export class TransactionExplorerDescriptionCondition implements TransactionExplo
         return this.value;
     }
 
-    public match(transaction: TransactionInsightDataItem): boolean {
-        const description = transaction.comment || '';
+    public match(transaction: TransactionInsightDataItem, context: InsightsExplorerMatchContext): boolean {
+        let description: string;
+
+        if (!transaction.comment) {
+            description = '';
+        } else if (this.matchMode === DescriptionMatchMode.Normalized) {
+            description = context.getNormalizedDescription().normalizedText;
+        } else if (this.matchMode === DescriptionMatchMode.CaseInsensitive) {
+            description = context.getNormalizedDescription().lowerCaseText;
+        } else {
+            description = transaction.comment;
+        }
 
         if (this.operator === TransactionExplorerConditionOperatorType.IsEmpty) {
             return description.length === 0;
         } else if (this.operator === TransactionExplorerConditionOperatorType.IsNotEmpty) {
             return description.length > 0;
         } else if (this.operator === TransactionExplorerConditionOperatorType.Equals) {
-            return description === this.value;
+            return description === this.getCachedNormalizedValue();
         } else if (this.operator === TransactionExplorerConditionOperatorType.NotEquals) {
-            return description !== this.value;
+            return description !== this.getCachedNormalizedValue();
         } else if (this.operator === TransactionExplorerConditionOperatorType.Contains) {
-            return description.includes(this.value);
+            return description.includes(this.getCachedNormalizedValue());
         } else if (this.operator === TransactionExplorerConditionOperatorType.NotContains) {
-            return !description.includes(this.value);
+            return !description.includes(this.getCachedNormalizedValue());
         } else if (this.operator === TransactionExplorerConditionOperatorType.StartsWith) {
-            return description.startsWith(this.value);
+            return description.startsWith(this.getCachedNormalizedValue());
         } else if (this.operator === TransactionExplorerConditionOperatorType.NotStartsWith) {
-            return !description.startsWith(this.value);
+            return !description.startsWith(this.getCachedNormalizedValue());
         } else if (this.operator === TransactionExplorerConditionOperatorType.EndsWith) {
-            return description.endsWith(this.value);
+            return description.endsWith(this.getCachedNormalizedValue());
         } else if (this.operator === TransactionExplorerConditionOperatorType.NotEndsWith) {
-            return !description.endsWith(this.value);
+            return !description.endsWith(this.getCachedNormalizedValue());
         } else if (this.operator === TransactionExplorerConditionOperatorType.RegexMatch) {
             return this.getCachedRegex()?.test(description) ?? false;
         } else if (this.operator === TransactionExplorerConditionOperatorType.NotRegexMatch) {
@@ -1869,6 +1938,18 @@ export class TransactionExplorerDescriptionCondition implements TransactionExplo
     }
 
     public toExpression(): string {
+        const expression: string = this.getExpression();
+
+        if (expression && this.matchMode === DescriptionMatchMode.Normalized) {
+            return `${expression} NORMALIZED`;
+        } else if (expression && this.matchMode === DescriptionMatchMode.CaseInsensitive) {
+            return `${expression} CASE INSENSITIVE`;
+        } else {
+            return expression;
+        }
+    }
+
+    private getExpression(): string {
         const escapedValue = this.value.replace(/'/g, "''");
 
         if (this.operator === TransactionExplorerConditionOperatorType.IsEmpty) {
@@ -1900,21 +1981,72 @@ export class TransactionExplorerDescriptionCondition implements TransactionExplo
         return '';
     }
 
+    private getCachedNormalizedValue(): string {
+        let normalizedValue = this.cachedNormalizedValue;
+
+        if (!normalizedValue || normalizedValue.originalText !== this.value) {
+            normalizedValue = NormalizedText.of(this.value);
+            this.cachedNormalizedValue = normalizedValue;
+            this.cachedRegex = undefined;
+        }
+
+        if (this.matchMode === DescriptionMatchMode.Normalized) {
+            return normalizedValue.normalizedText;
+        } else if (this.matchMode === DescriptionMatchMode.CaseInsensitive) {
+            return normalizedValue.lowerCaseText;
+        } else {
+            return normalizedValue.originalText;
+        }
+    }
+
     private getCachedRegex(): RegExp | undefined {
         if (this.operator !== TransactionExplorerConditionOperatorType.RegexMatch && this.operator !== TransactionExplorerConditionOperatorType.NotRegexMatch) {
             return undefined;
         }
 
-        if (TransactionExplorerDescriptionCondition.cachedRegexPattern !== this.value) {
+        if (!this.cachedNormalizedValue || this.cachedNormalizedValue.originalText !== this.value || !this.cachedRegex) {
             try {
-                TransactionExplorerDescriptionCondition.cachedRegex = new RegExp(this.value);
-                TransactionExplorerDescriptionCondition.cachedRegexPattern = this.value;
+                let regex: RegExp;
+
+                if (this.matchMode === DescriptionMatchMode.CaseInsensitive || this.matchMode === DescriptionMatchMode.Normalized) {
+                    regex = new RegExp(this.getCachedNormalizedValue(), 'i');
+                } else {
+                    regex = new RegExp(this.getCachedNormalizedValue());
+                }
+
+                this.cachedRegex = regex;
             } catch {
-                TransactionExplorerDescriptionCondition.cachedRegex = undefined;
-                TransactionExplorerDescriptionCondition.cachedRegexPattern = undefined;
+                this.cachedRegex = undefined;
             }
         }
 
-        return TransactionExplorerDescriptionCondition.cachedRegex;
+        return this.cachedRegex;
+    }
+}
+
+export class TransactionExplorerDescriptionCondition extends AbstractTransactionExplorerDescriptionCondition<TransactionExplorerConditionFieldType.Description> {
+    public readonly field = TransactionExplorerConditionFieldType.Description;
+    protected readonly matchMode = DescriptionMatchMode.Exact;
+
+    constructor(operator: DescriptionConditionOperator, value: string) {
+        super(operator, value);
+    }
+}
+
+export class TransactionExplorerDescriptionCaseInsensitiveCondition extends AbstractTransactionExplorerDescriptionCondition<TransactionExplorerConditionFieldType.DescriptionCaseInsensitive> {
+    public readonly field = TransactionExplorerConditionFieldType.DescriptionCaseInsensitive;
+    protected readonly matchMode = DescriptionMatchMode.CaseInsensitive;
+
+    constructor(operator: DescriptionConditionOperator, value: string) {
+        super(operator, value);
+    }
+}
+
+export class TransactionExplorerDescriptionNormalizedCondition extends AbstractTransactionExplorerDescriptionCondition<TransactionExplorerConditionFieldType.DescriptionNormalized> {
+    public readonly field = TransactionExplorerConditionFieldType.DescriptionNormalized;
+    protected readonly matchMode = DescriptionMatchMode.Normalized;
+
+    constructor(operator: DescriptionConditionOperator, value: string) {
+        super(operator, value);
     }
 }

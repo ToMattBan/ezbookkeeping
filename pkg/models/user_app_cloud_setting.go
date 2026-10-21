@@ -14,20 +14,25 @@ const (
 )
 
 var ALL_ALLOWED_CLOUD_SYNC_APP_SETTING_KEY_TYPES = map[string]UserApplicationCloudSettingType{
-	// Basic Settings
+	// General Settings
 	"showAccountBalance":          USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
+	"accountCategoryOrders":       USER_APPLICATION_CLOUD_SETTING_TYPE_STRING,
 	"autoUpdateExchangeRatesData": USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
+	"chartColors":                 USER_APPLICATION_CLOUD_SETTING_TYPE_STRING,
 	// Navigation Bar
 	"showAddTransactionButtonInDesktopNavbar": USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
 	// Overview Page
+	"desktopOverviewPageLayout":                   USER_APPLICATION_CLOUD_SETTING_TYPE_STRING,
+	"mobileOverviewPageLayout":                    USER_APPLICATION_CLOUD_SETTING_TYPE_STRING,
 	"showAmountInHomePage":                        USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
 	"timezoneUsedForStatisticsInHomePage":         USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
 	"overviewAccountFilterInHomePage":             USER_APPLICATION_CLOUD_SETTING_TYPE_STRING_BOOLEAN_MAP,
 	"overviewTransactionCategoryFilterInHomePage": USER_APPLICATION_CLOUD_SETTING_TYPE_STRING_BOOLEAN_MAP,
 	// Transaction List Page
-	"itemsCountInTransactionListPage":      USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
-	"showTotalAmountInTransactionListPage": USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
-	"showTagInTransactionListPage":         USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
+	"itemsCountInTransactionListPage":              USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
+	"showTotalAmountInTransactionListPage":         USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
+	"showTagInTransactionListPage":                 USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
+	"defaultKeywordMatchModeInTransactionListPage": USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
 	// Transaction Edit Page
 	"quickSaveButtonStyleInMobileTransactionListPage":          USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
 	"quickAddButtonActionInMobileTransactionEditPage":          USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
@@ -35,6 +40,8 @@ var ALL_ALLOWED_CLOUD_SYNC_APP_SETTING_KEY_TYPES = map[string]UserApplicationClo
 	"autoGetCurrentGeoLocation":                                USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
 	"alwaysShowTransactionPicturesInMobileTransactionEditPage": USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
 	"transactionPictureQuality":                                USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
+	// AI Clipboard Text Recognition
+	"alwaysRequireConfirmationOfClipboardContentBeforeSubmission": USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
 	// AI Image Recognition
 	"autoUploadTransactionPictureForAIRecognition": USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
 	// Import Transaction Dialog
@@ -45,8 +52,8 @@ var ALL_ALLOWED_CLOUD_SYNC_APP_SETTING_KEY_TYPES = map[string]UserApplicationClo
 	"showTagInInsightsExplorerPage":        USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
 	// Account List Page
 	"totalAmountExcludeAccountIds":                               USER_APPLICATION_CLOUD_SETTING_TYPE_STRING_BOOLEAN_MAP,
-	"accountCategoryOrders":                                      USER_APPLICATION_CLOUD_SETTING_TYPE_STRING,
 	"hideCategoriesWithoutAccounts":                              USER_APPLICATION_CLOUD_SETTING_TYPE_BOOLEAN,
+	"defaultCreditCardAmountDisplayTypeInMobile":                 USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
 	"reconciliationStatementButtonDefaultDateRangeTypeInDesktop": USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
 	"reconciliationStatementPageDefaultDateRangeTypeInMobile":    USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
 	// Exchange Rates Data Page
@@ -59,6 +66,7 @@ var ALL_ALLOWED_CLOUD_SYNC_APP_SETTING_KEY_TYPES = map[string]UserApplicationClo
 	"statistics.defaultTimezoneType":                  USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
 	"statistics.defaultAccountFilter":                 USER_APPLICATION_CLOUD_SETTING_TYPE_STRING_BOOLEAN_MAP,
 	"statistics.defaultTransactionCategoryFilter":     USER_APPLICATION_CLOUD_SETTING_TYPE_STRING_BOOLEAN_MAP,
+	"statistics.defaultKeywordMatchMode":              USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
 	"statistics.defaultSortingType":                   USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
 	"statistics.defaultCategoricalChartType":          USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,
 	"statistics.defaultCategoricalChartDataRangeType": USER_APPLICATION_CLOUD_SETTING_TYPE_NUMBER,

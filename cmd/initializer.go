@@ -170,55 +170,73 @@ func getConfigWithoutSensitiveData(config *settings.Config) *settings.Config {
 		clonedConfig.SMTPConfig.SMTPPasswd = "****"
 	}
 
+	if clonedConfig.S3Config.SecretAccessKey != "" {
+		clonedConfig.S3Config.SecretAccessKey = "****"
+	}
+
+	if clonedConfig.S3Config.SessionToken != "" {
+		clonedConfig.S3Config.SessionToken = "****"
+	}
+
 	if clonedConfig.MinIOConfig.SecretAccessKey != "" {
 		clonedConfig.MinIOConfig.SecretAccessKey = "****"
-	}
-
-	if clonedConfig.SecretKey != "" {
-		clonedConfig.SecretKey = "****"
-	}
-
-	if clonedConfig.AmapApplicationSecret != "" {
-		clonedConfig.AmapApplicationSecret = "****"
 	}
 
 	if clonedConfig.WebDAVConfig != nil && clonedConfig.WebDAVConfig.Password != "" {
 		clonedConfig.WebDAVConfig.Password = "****"
 	}
 
+	if clonedConfig.TextRecognitionLLMConfig != nil {
+		removeSensitiveDataFromLLMConfig(clonedConfig.TextRecognitionLLMConfig)
+	}
+
 	if clonedConfig.ReceiptImageRecognitionLLMConfig != nil {
-		if clonedConfig.ReceiptImageRecognitionLLMConfig.OpenAIAPIKey != "" {
-			clonedConfig.ReceiptImageRecognitionLLMConfig.OpenAIAPIKey = "****"
-		}
+		removeSensitiveDataFromLLMConfig(clonedConfig.ReceiptImageRecognitionLLMConfig)
+	}
 
-		if clonedConfig.ReceiptImageRecognitionLLMConfig.OpenAICompatibleAPIKey != "" {
-			clonedConfig.ReceiptImageRecognitionLLMConfig.OpenAICompatibleAPIKey = "****"
-		}
-
-		if clonedConfig.ReceiptImageRecognitionLLMConfig.AnthropicCompatibleAPIKey != "" {
-			clonedConfig.ReceiptImageRecognitionLLMConfig.AnthropicCompatibleAPIKey = "****"
-		}
-
-		if clonedConfig.ReceiptImageRecognitionLLMConfig.AnthropicAPIKey != "" {
-			clonedConfig.ReceiptImageRecognitionLLMConfig.AnthropicAPIKey = "****"
-		}
-
-		if clonedConfig.ReceiptImageRecognitionLLMConfig.OpenRouterAPIKey != "" {
-			clonedConfig.ReceiptImageRecognitionLLMConfig.OpenRouterAPIKey = "****"
-		}
-
-		if clonedConfig.ReceiptImageRecognitionLLMConfig.LMStudioToken != "" {
-			clonedConfig.ReceiptImageRecognitionLLMConfig.LMStudioToken = "****"
-		}
-
-		if clonedConfig.ReceiptImageRecognitionLLMConfig.GoogleAIAPIKey != "" {
-			clonedConfig.ReceiptImageRecognitionLLMConfig.GoogleAIAPIKey = "****"
-		}
+	if clonedConfig.SecretKey != "" {
+		clonedConfig.SecretKey = "****"
 	}
 
 	if clonedConfig.OAuth2ClientSecret != "" {
 		clonedConfig.OAuth2ClientSecret = "****"
 	}
 
+	if clonedConfig.AmapApplicationSecret != "" {
+		clonedConfig.AmapApplicationSecret = "****"
+	}
+
 	return clonedConfig
+}
+
+func removeSensitiveDataFromLLMConfig(llmConfig *settings.LLMConfig) {
+	if llmConfig != nil {
+		if llmConfig.OpenAIAPIKey != "" {
+			llmConfig.OpenAIAPIKey = "****"
+		}
+
+		if llmConfig.OpenAICompatibleAPIKey != "" {
+			llmConfig.OpenAICompatibleAPIKey = "****"
+		}
+
+		if llmConfig.AnthropicCompatibleAPIKey != "" {
+			llmConfig.AnthropicCompatibleAPIKey = "****"
+		}
+
+		if llmConfig.AnthropicAPIKey != "" {
+			llmConfig.AnthropicAPIKey = "****"
+		}
+
+		if llmConfig.OpenRouterAPIKey != "" {
+			llmConfig.OpenRouterAPIKey = "****"
+		}
+
+		if llmConfig.LMStudioToken != "" {
+			llmConfig.LMStudioToken = "****"
+		}
+
+		if llmConfig.GoogleAIAPIKey != "" {
+			llmConfig.GoogleAIAPIKey = "****"
+		}
+	}
 }
