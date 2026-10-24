@@ -1,4 +1,11 @@
+import { isNativeApp, getNativeServerUrl } from './native.ts';
+
 export function getBasePath(): string {
+    if (isNativeApp()) {
+        // inside the Capacitor app, all server requests go to the configured server
+        return getNativeServerUrl();
+    }
+
     const path = window.location.pathname;
     const lastSlashIndex = path.lastIndexOf('/');
 
@@ -10,7 +17,7 @@ export function getBasePath(): string {
 }
 
 export function navigateToHomePage(type: 'desktop' | 'mobile'): void {
-    if (__EZBOOKKEEPING_IS_PRODUCTION__) {
+    if (__EZBOOKKEEPING_IS_PRODUCTION__ && !isNativeApp()) {
         window.location.replace(`${type}#/`);
     } else {
         window.location.replace(`${type}.html#/`);

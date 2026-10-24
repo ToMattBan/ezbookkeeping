@@ -30,6 +30,7 @@ import AccountFilterSettingsPage from '@/views/mobile/settings/AccountFilterSett
 import CategoryFilterSettingsPage from '@/views/mobile/settings/CategoryFilterSettingsPage.vue';
 import TransactionTagFilterSettingsPage from '@/views/mobile/settings/TransactionTagFilterSettingsPage.vue';
 
+import ServerSettingsPage from '@/views/mobile/settings/ServerSettingsPage.vue';
 import SettingsPage from '@/views/mobile/SettingsPage.vue';
 import ApplicationLockPage from '@/views/mobile/ApplicationLockPage.vue';
 import ExchangeRatesListPage from '@/views/mobile/exchangerates/ListPage.vue';
@@ -266,6 +267,11 @@ const routes: Router.RouteParameters[] = [
     {
         path: '/settings/browser_caches',
         async: asyncResolve(BrowserCacheSettingPage),
+        beforeEnter: [checkLogin]
+    },
+    {
+        path: '/settings/server',
+        async: asyncResolve(ServerSettingsPage),
         beforeEnter: [checkLogin]
     },
     {

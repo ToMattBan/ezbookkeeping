@@ -71,6 +71,7 @@
             <f7-list-item :title="tt('Preferences')" link="/settings/preferences"></f7-list-item>
             <f7-list-item :title="tt('Statistics Settings')" link="/statistic/settings"></f7-list-item>
             <f7-list-item :title="tt('Settings Sync')" link="/settings/sync"></f7-list-item>
+            <f7-list-item title="Server Connection" link="/settings/server" v-if="isNativeApp()"></f7-list-item>
 
             <f7-list-item>
                 <template #after-title>
@@ -114,6 +115,7 @@ import { useExchangeRatesStore } from '@/stores/exchangeRates.ts';
 import { findNameByValue } from '@/lib/common.ts';
 import { parseDateTimeFromUnixTime } from '@/lib/datetime.ts';
 import { getClientDisplayVersion, getDesktopVersionPath } from '@/lib/version.ts';
+import { isNativeApp } from '@/lib/native.ts';
 import { isUserScheduledTransactionEnabled } from '@/lib/server_settings.ts';
 import { setExpenseAndIncomeAmountColor } from '@/lib/ui/common.ts';
 

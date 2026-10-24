@@ -1,6 +1,7 @@
 import type { VersionInfo } from '@/core/version.ts';
 
 import { getBasePath } from './web.ts';
+import { isNativeApp } from './native.ts';
 
 const clientVersionHolder: VersionInfo = {
     version: __EZBOOKKEEPING_VERSION__,
@@ -47,6 +48,10 @@ export function getClientBuildTime(): string {
 }
 
 export function getMobileVersionPath(): string {
+    if (isNativeApp()) {
+        return 'mobile.html#/';
+    }
+
     if (isProduction()) {
         return getBasePath() + '/mobile#/';
     } else {
@@ -54,6 +59,10 @@ export function getMobileVersionPath(): string {
     }
 }
 export function getDesktopVersionPath(): string {
+    if (isNativeApp()) {
+        return 'desktop.html#/';
+    }
+
     if (isProduction()) {
         return getBasePath() + '/desktop#/';
     } else {

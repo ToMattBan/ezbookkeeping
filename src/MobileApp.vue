@@ -25,6 +25,7 @@ import { ThemeType } from '@/core/theme.ts';
 
 import { isFunction } from '@/lib/common.ts';
 import { isProduction } from '@/lib/version.ts';
+import { isNativeApp } from '@/lib/native.ts';
 import { getTheme, isEnableSwipeBack, isEnableAnimate } from '@/lib/settings.ts';
 import { initMapProvider } from '@/lib/map/index.ts';
 import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
@@ -67,7 +68,7 @@ const f7params = ref<Framework7Parameters>({
         tapHold: true
     },
     serviceWorker: {
-        path: isProduction() ? './sw.js' : undefined,
+        path: isProduction() && !isNativeApp() ? './sw.js' : undefined,
         scope: './',
     },
     actions: {

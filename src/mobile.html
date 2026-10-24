@@ -68,7 +68,26 @@
             document.getElementById('framework7-css').href = '{{framework7-ltr-css-filepath}}';
         }
     </script>
-    <script src="./server_settings.js"></script>
+    <script>
+        (function () {
+            var cap = window.Capacitor;
+            var src = './server_settings.js';
+
+            if (cap && cap.isNativePlatform && cap.isNativePlatform()) {
+                // inside the Capacitor app, server settings come from the configured server
+                var serverUrl = localStorage.getItem('ezbookkeeping_native_server_url');
+
+                if (!serverUrl) {
+                    location.replace('index.html');
+                    return;
+                }
+
+                src = serverUrl + '/server_settings.js';
+            }
+
+            document.write('<script src="' + src + '" onerror="location.replace(\'index.html\')"><\/script>');
+        })();
+    </script>
 </head>
 <body>
     <noscript>

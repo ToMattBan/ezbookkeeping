@@ -213,6 +213,7 @@ import {
 } from './datetime.ts';
 import { generateRandomUUID } from './misc.ts';
 import { getBasePath } from './web.ts';
+import { rebaseServerFileUrl } from './native.ts';
 import logger from './logger.ts';
 
 interface ApiRequestConfig extends AxiosRequestConfig {
@@ -978,12 +979,16 @@ export default {
         return `${AMAP_JAVASCRIPT_URL}&key=${getAmapApplicationKey()}&plugin=AMap.ToolBar&callback=${callbackFnName}`;
     },
     generateAmapApiInternalProxyUrl: (): string => {
-        return `${window.location.origin}${getBasePath()}${BASE_AMAP_API_PROXY_URL_PATH}`;
+        const basePath = getBasePath();
+        const origin = /^https?:\/\//i.test(basePath) ? '' : window.location.origin; // basePath is already absolute inside the native app
+        return `${origin}${basePath}${BASE_AMAP_API_PROXY_URL_PATH}`;
     },
     getInternalAvatarUrlWithToken(avatarUrl: string, disableBrowserCache?: boolean | string): string {
         if (!avatarUrl) {
             return avatarUrl;
         }
+
+        avatarUrl = rebaseServerFileUrl(avatarUrl);
 
         const params: string[] = [];
         params.push('token=' + getCurrentToken());
@@ -1009,6 +1014,8 @@ export default {
         if (!pictureUrl) {
             return pictureUrl;
         }
+
+        pictureUrl = rebaseServerFileUrl(pictureUrl);
 
         const params: string[] = [];
         params.push('token=' + getCurrentToken());
