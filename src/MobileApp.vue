@@ -26,6 +26,7 @@ import { ThemeType } from '@/core/theme.ts';
 import { isFunction } from '@/lib/common.ts';
 import { isProduction } from '@/lib/version.ts';
 import { isNativeApp } from '@/lib/native.ts';
+import { parseDeepLink, shouldHandleDeepLink } from '@/lib/deeplink.ts';
 import { getTheme, isEnableSwipeBack, isEnableAnimate } from '@/lib/settings.ts';
 import { initMapProvider } from '@/lib/map/index.ts';
 import { isUserLogined, isUserUnlocked } from '@/lib/userstate.ts';
@@ -166,6 +167,26 @@ onMounted(() => {
     setAppFontSize(settingsStore.appSettings.fontSize);
 
     f7ready((f7) => {
+        if (Capacitor.isNativePlatform()) {
+            const openDeepLink = (url: string, isLaunchUrl: boolean): void => {
+                const route = parseDeepLink(url);
+
+                if (route && shouldHandleDeepLink(url, isLaunchUrl)) {
+                    setTimeout(() => f7.views.main.router.navigate(route), 0);
+                }
+            };
+
+            // app already running
+            App.addListener('appUrlOpen', (event) => openDeepLink(event.url, false));
+
+            // app started by a link
+            App.getLaunchUrl().then((launch) => {
+                if (launch && launch.url) {
+                    openDeepLink(launch.url, true);
+                }
+            }).catch(() => {});
+        }
+
         environmentsStore.framework7DarkMode = f7.darkMode;
         setThemeColorMeta(f7.darkMode);
 

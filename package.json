@@ -14,7 +14,7 @@
   "scripts": {
     "serve": "cross-env NODE_ENV=development vite",
     "build": "cross-env NODE_ENV=production vite build",
-    "build:android": "rm -rf dist && npm run build && npx cap sync && cd ./android && ./gradlew assembleDebug && rm -rf ../output && mkdir -p ../output && cp ./app/build/outputs/apk/debug/app-debug.apk ../output/ezBookKeeping.apk",
+    "build:android": "rm -rf dist && npm run build && npx cap sync && node scripts/android-add-deeplink.mjs && cd ./android && ./gradlew assembleDebug && rm -rf ../output && mkdir -p ../output && cp ./app/build/outputs/apk/debug/app-debug.apk ../output/ezBookKeeping.apk",
     "serve:dist": "vite preview",
     "lint": "vue-tsc --noEmit && eslint . --fix",
     "test": "vitest run"
