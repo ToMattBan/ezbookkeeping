@@ -2,9 +2,11 @@ package mcp
 
 import (
 	"encoding/base64"
-	"encoding/json"
+	"encoding/json/jsontext"
 
 	"github.com/invopop/jsonschema"
+
+	"github.com/mayswind/ezbookkeeping/pkg/core"
 )
 
 // MCPProtocolVersion defines the type for Model Context Protocol (MCP) version
@@ -124,6 +126,7 @@ type MCPListToolsResponse struct {
 
 // MCPTool defines the structure of a tool in the MCP
 type MCPTool struct {
+	ToolType     core.MCPToolType
 	Name         string             `json:"name"`
 	InputSchema  *jsonschema.Schema `json:"inputSchema"`
 	OutputSchema *jsonschema.Schema `json:"outputSchema,omitempty"`
@@ -133,8 +136,8 @@ type MCPTool struct {
 
 // MCPCallToolRequest defines the request structure for listing tools in the MCP
 type MCPCallToolRequest struct {
-	Name      string          `json:"name"`
-	Arguments json.RawMessage `json:"arguments,omitempty"`
+	Name      string         `json:"name"`
+	Arguments jsontext.Value `json:"arguments,omitempty"`
 }
 
 // MCPCallToolResponse defines the response structure for calling a tool in the MCP

@@ -1,7 +1,7 @@
 package api
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"time"
 
 	"github.com/mayswind/ezbookkeeping/pkg/core"
@@ -29,7 +29,6 @@ var (
 // ApplicationSettingsGetHandler returns application cloud settings of current user
 func (a *UserApplicationCloudSettingsApi) ApplicationSettingsGetHandler(c *core.WebContext) (any, *errs.Error) {
 	uid := c.GetCurrentUid()
-
 	userApplicationCloudSettings, err := a.userAppCloudSettings.GetUserApplicationCloudSettingsByUid(c, uid)
 
 	if err != nil {

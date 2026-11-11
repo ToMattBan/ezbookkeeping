@@ -95,7 +95,8 @@
 
                                 <v-row>
                                     <v-col cols="12" md="6">
-                                        <currency-select :disabled="submitting || navigateToHomePage"
+                                        <currency-select :menu-props="{ contentClass: 'select-menu-large' }"
+                                                         :disabled="submitting || navigateToHomePage"
                                                          :label="tt('Default Currency')"
                                                          :placeholder="tt('Default Currency')"
                                                          v-model="user.defaultCurrency" />
@@ -110,6 +111,32 @@
                                             :placeholder="tt('First Day of Week')"
                                             :items="allWeekDays"
                                             v-model="user.firstDayOfWeek"
+                                        />
+                                    </v-col>
+                                </v-row>
+
+                                <v-row>
+                                    <v-col cols="12" md="6">
+                                        <v-select
+                                            item-title="displayName"
+                                            item-value="type"
+                                            :disabled="submitting || navigateToHomePage"
+                                            :label="tt('Expense Amount Color')"
+                                            :placeholder="tt('Expense Amount Color')"
+                                            :items="allExpenseAmountColorTypes"
+                                            v-model="user.expenseAmountColor"
+                                        />
+                                    </v-col>
+
+                                    <v-col cols="12" md="6">
+                                        <v-select
+                                            item-title="displayName"
+                                            item-value="type"
+                                            :disabled="submitting || navigateToHomePage"
+                                            :label="tt('Income Amount Color')"
+                                            :placeholder="tt('Income Amount Color')"
+                                            :items="allIncomeAmountColorTypes"
+                                            v-model="user.incomeAmountColor"
                                         />
                                     </v-col>
                                 </v-row>
@@ -237,6 +264,8 @@ const { tt, getAllWeekDays, getAllTransactionDefaultCategories } = useI18n();
 const {
     user,
     submitting,
+    allExpenseAmountColorTypes,
+    allIncomeAmountColorTypes,
     languageTitle,
     currentLocale,
     inputEmptyProblemMessage,

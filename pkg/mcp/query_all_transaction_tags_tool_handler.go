@@ -1,7 +1,7 @@
 package mcp
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"reflect"
 
 	"github.com/mayswind/ezbookkeeping/pkg/core"
@@ -18,6 +18,11 @@ type MCPAllQueryTransactionTagsResponse struct {
 type mcpQueryAllTransactionTagsToolHandler struct{}
 
 var MCPQueryAllTransactionTagsToolHandler = &mcpQueryAllTransactionTagsToolHandler{}
+
+// ToolType returns the MCP tool type
+func (h *mcpQueryAllTransactionTagsToolHandler) ToolType() core.MCPToolType {
+	return core.MCP_TOOL_TYPE_QUERY_ALL_TRANSACTION_TAGS
+}
 
 // Name returns the name of the MCP tool
 func (h *mcpQueryAllTransactionTagsToolHandler) Name() string {

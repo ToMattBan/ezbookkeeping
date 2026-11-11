@@ -73,22 +73,19 @@ func (a *ServerSettingsApi) ServerSettingsJavascriptHandler(c *core.WebContext) 
 		}
 	}
 
+	if config.CodingAssistantLLMConfig != nil && config.CodingAssistantLLMConfig.LLMProvider != "" {
+		if config.InsightsExplorerCodingAssistant {
+			a.appendBooleanSetting(builder, "llmec", true)
+		}
+	}
+
 	if config.LoginPageTips.Enabled {
 		a.appendMultiLanguageTipSetting(builder, "lpt", config.LoginPageTips)
 	}
 
 	a.appendStringSetting(builder, "m", config.MapProvider)
 
-	if config.EnableMapDataFetchProxy &&
-		(config.MapProvider == settings.OpenStreetMapProvider ||
-			config.MapProvider == settings.OpenStreetMapHumanitarianStyleProvider ||
-			config.MapProvider == settings.OpenTopoMapProvider ||
-			config.MapProvider == settings.OPNVKarteMapProvider ||
-			config.MapProvider == settings.CyclOSMMapProvider ||
-			config.MapProvider == settings.CartoDBMapProvider ||
-			config.MapProvider == settings.TomTomMapProvider ||
-			config.MapProvider == settings.TianDiTuProvider ||
-			config.MapProvider == settings.CustomProvider) {
+	if config.EnableMapDataFetchProxy && config.SupportMapDataFetchProxy {
 		a.appendBooleanSetting(builder, "mp", config.EnableMapDataFetchProxy)
 	}
 
@@ -143,6 +140,8 @@ func (a *ServerSettingsApi) ServerSettingsJavascriptHandler(c *core.WebContext) 
 	if config.ExchangeRatesRequestTimeoutExceedDefaultValue {
 		a.appendIntegerSetting(builder, "errt", int(config.ExchangeRatesRequestTimeout))
 	}
+
+	a.appendBooleanSetting(builder, "dlp", config.EnableLanguagePreview)
 
 	builder.WriteString(ezbookkeepingServerSettingsJavascriptFileFooter)
 

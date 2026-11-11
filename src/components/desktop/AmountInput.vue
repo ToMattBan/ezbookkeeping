@@ -1,6 +1,6 @@
 <template>
-    <v-text-field type="text" class="amount-input text-field-with-colored-label" :class="extraClass"
-                  :color="color" :base-color="color"
+    <v-text-field type="text" class="amount-input text-field-with-colored-label" autocomplete="off"
+                  :class="extraClass" :color="color" :base-color="color"
                   :density="density" :variant="variant" :autofocus="autofocus"
                   :readonly="!!readonly" :disabled="!!disabled"
                   :label="label" :placeholder="placeholder"
@@ -21,9 +21,10 @@
             </v-tooltip>
         </template>
     </v-text-field>
-    <v-text-field type="text" class="text-field-with-colored-label" :class="extraClass"
-                  :color="color" :base-color="color"
-                  :density="density" :readonly="!!readonly" :disabled="!!disabled"
+    <v-text-field type="text" class="text-field-with-colored-label" autocomplete="off"
+                  :class="extraClass" :color="color" :base-color="color"
+                  :density="density" :variant="variant"
+                  :readonly="!!readonly" :disabled="!!disabled"
                   :label="label" :placeholder="placeholder"
                   :persistent-placeholder="!!persistentPlaceholder"
                   v-model="currentFormula" v-if="!hide && formulaMode"
@@ -49,9 +50,10 @@
             </v-tooltip>
         </template>
     </v-text-field>
-    <v-text-field type="password" class="text-field-with-colored-label" :class="extraClass"
-                  :color="color" :base-color="color"
-                  :density="density" :readonly="!!readonly" :disabled="!!disabled"
+    <v-text-field type="password" class="text-field-with-colored-label" autocomplete="off"
+                  :class="extraClass" :color="color" :base-color="color"
+                  :density="density" :variant="variant"
+                  :readonly="!!readonly" :disabled="!!disabled"
                   :label="label" :placeholder="placeholder"
                   :persistent-placeholder="!!persistentPlaceholder"
                   :rules="enableRules ? rules : []" v-model="currentValue" v-if="hide"

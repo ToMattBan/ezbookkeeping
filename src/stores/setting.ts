@@ -252,6 +252,12 @@ export const useSettingsStore = defineStore('settings', () => {
         updateUserApplicationCloudSettingValue('overviewTransactionCategoryFilterInHomePage', value);
     }
 
+    function setOverviewTransactionTagFilterInHomePage(value: string): void {
+        updateApplicationSettingsValue('overviewTransactionTagFilterInHomePage', value);
+        appSettings.value.overviewTransactionTagFilterInHomePage = value;
+        updateUserApplicationCloudSettingValue('overviewTransactionTagFilterInHomePage', value);
+    }
+
     // Transaction List Page
     function setItemsCountInTransactionListPage(value: number): void {
         updateApplicationSettingsValue('itemsCountInTransactionListPage', value);
@@ -265,10 +271,22 @@ export const useSettingsStore = defineStore('settings', () => {
         updateUserApplicationCloudSettingValue('showTotalAmountInTransactionListPage', value);
     }
 
+    function setTotalAmountTypeInTransactionListPage(value: number): void {
+        updateApplicationSettingsValue('totalAmountTypeInTransactionListPage', value);
+        appSettings.value.totalAmountTypeInTransactionListPage = value;
+        updateUserApplicationCloudSettingValue('totalAmountTypeInTransactionListPage', value);
+    }
+
     function setShowTagInTransactionListPage(value: boolean): void {
         updateApplicationSettingsValue('showTagInTransactionListPage', value);
         appSettings.value.showTagInTransactionListPage = value;
         updateUserApplicationCloudSettingValue('showTagInTransactionListPage', value);
+    }
+
+    function setShowPictureIndicatorInTransactionListPage(value: boolean): void {
+        updateApplicationSettingsValue('showPictureIndicatorInTransactionListPage', value);
+        appSettings.value.showPictureIndicatorInTransactionListPage = value;
+        updateUserApplicationCloudSettingValue('showPictureIndicatorInTransactionListPage', value);
     }
 
     function setDefaultKeywordMatchModeInTransactionListPage(value: number): void {
@@ -300,6 +318,12 @@ export const useSettingsStore = defineStore('settings', () => {
         updateApplicationSettingsValue('autoGetCurrentGeoLocation', value);
         appSettings.value.autoGetCurrentGeoLocation = value;
         updateUserApplicationCloudSettingValue('autoGetCurrentGeoLocation', value);
+    }
+
+    function setShowSelectedTagsOnTopInMobile(value: boolean): void {
+        updateApplicationSettingsValue('showSelectedTagsOnTopInMobile', value);
+        appSettings.value.showSelectedTagsOnTopInMobile = value;
+        updateUserApplicationCloudSettingValue('showSelectedTagsOnTopInMobile', value);
     }
 
     function setAlwaysShowTransactionPicturesInMobileTransactionEditPage(value: boolean): void {
@@ -405,6 +429,12 @@ export const useSettingsStore = defineStore('settings', () => {
         updateApplicationSettingsValue('mapCacheExpiration', value);
         appSettings.value.mapCacheExpiration = value;
         updateUserApplicationCloudSettingValue('mapCacheExpiration', value);
+    }
+
+    function setTransactionPictureCacheExpiration(value: number): void {
+        updateApplicationSettingsValue('transactionPictureCacheExpiration', value);
+        appSettings.value.transactionPictureCacheExpiration = value;
+        updateUserApplicationCloudSettingValue('transactionPictureCacheExpiration', value);
     }
 
     function setExchangeRatesDataCacheExpiration(value: number): void {
@@ -591,6 +621,8 @@ export const useSettingsStore = defineStore('settings', () => {
 
         localeDefaultSettings.value.currency = newLocaleDefaultSettings.currency;
         localeDefaultSettings.value.firstDayOfWeek = newLocaleDefaultSettings.firstDayOfWeek;
+        localeDefaultSettings.value.preferredExpenseAmountColor = newLocaleDefaultSettings.preferredExpenseAmountColor;
+        localeDefaultSettings.value.preferredIncomeAmountColor = newLocaleDefaultSettings.preferredIncomeAmountColor;
     }
 
     return {
@@ -625,16 +657,20 @@ export const useSettingsStore = defineStore('settings', () => {
         setTimezoneUsedForStatisticsInHomePage,
         setOverviewAccountFilterInHomePage,
         setOverviewTransactionCategoryFilterInHomePage,
+        setOverviewTransactionTagFilterInHomePage,
         // -- Transaction List Page
         setItemsCountInTransactionListPage,
         setShowTotalAmountInTransactionListPage,
+        setTotalAmountTypeInTransactionListPage,
         setShowTagInTransactionListPage,
+        setShowPictureIndicatorInTransactionListPage,
         setDefaultKeywordMatchModeInTransactionListPage,
         // -- Transaction Edit Page
         setQuickSaveButtonStyleInMobileTransactionListPage,
         setQuickAddButtonActionInMobileTransactionEditPage,
         setAutoSaveTransactionDraft,
         setAutoGetCurrentGeoLocation,
+        setShowSelectedTagsOnTopInMobile,
         setAlwaysShowTransactionPicturesInMobileTransactionEditPage,
         setTransactionPictureQuality,
         // -- AI Clipboard Text Recognition
@@ -657,6 +693,7 @@ export const useSettingsStore = defineStore('settings', () => {
         setCurrencySortByInExchangeRatesPage,
         // -- Browser Cache Management
         setMapCacheExpiration,
+        setTransactionPictureCacheExpiration,
         setExchangeRatesDataCacheExpiration,
         // -- Statistics Settings
         setStatisticsDefaultChartDataType,

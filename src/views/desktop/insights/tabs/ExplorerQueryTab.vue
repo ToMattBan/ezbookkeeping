@@ -23,7 +23,7 @@
                         <v-icon :icon="mdiTextBoxSearchOutline" size="20" />
                         <span class="query-name text-body-large ms-2" v-if="editingQuery !== element">{{ element.name || tt('format.misc.queryIndex', { index: formatNumberToLocalizedNumeralsWithoutDigitGrouping(index + 1) }) }}</span>
                         <div class="query-name-edit ms-2" v-if="editingQuery === element">
-                            <v-text-field autofocus type="text" density="compact" variant="underlined"
+                            <v-text-field autofocus type="text" autocomplete="off" density="compact" variant="underlined"
                                           :disabled="loading || disabled"
                                           :placeholder="tt('format.misc.queryIndex', { index: formatNumberToLocalizedNumeralsWithoutDigitGrouping(index + 1) })"
                                           v-text-field-auto-width="{ minWidth: 20, maxWidth: 300, auxSpanId: `query-name-aux-span-${index + 1}-${element.id}` }"
@@ -97,7 +97,7 @@
                                 </div>
 
                                 <div v-else-if="element.conditions && element.conditions.length > 0 && !showExpression[element.id]">
-                                    <div :key="conditionIndex" v-for="(conditionWithRelation, conditionIndex) in element.conditions">
+                                    <div :key="conditionIndex" v-for="(conditionWithRelation, conditionIndex) in (element.conditions as TransactionExplorerConditionWithRelation[])">
                                         <div class="d-flex overflow-x-auto align-center gap-2 mb-3"
                                              :style="getConditionStyle(element, conditionIndex)"
                                              v-if="conditionWithRelation.relation !== TransactionExplorerConditionRelation.SubEnd">
@@ -136,6 +136,7 @@
                                                 density="compact"
                                                 item-title="name"
                                                 item-value="value"
+                                                :menu-props="{ contentClass: 'select-menu-large' }"
                                                 :disabled="loading || disabled || !!editingQuery"
                                                 :items="allTransactionExplorerConditionFields"
                                                 @update:model-value="updateConditionField(element, conditionIndex, TransactionExplorerConditionField.valueOf($event))"
@@ -147,6 +148,7 @@
                                                 density="compact"
                                                 item-title="name"
                                                 item-value="value"
+                                                :menu-props="{ contentClass: 'select-menu-medium' }"
                                                 :disabled="loading || disabled || !!editingQuery"
                                                 :items="getAllTransactionExplorerConditionOperators(conditionWithRelation.getSupportedOperators())"
                                                 v-model="conditionWithRelation.condition.operator"
@@ -161,7 +163,7 @@
                                                     :disabled="loading || disabled || !!editingQuery"
                                                     :placeholder="tt('None')"
                                                     :items="allAvailableDayOfWeekOptions"
-                                                    v-model="conditionWithRelation.condition.value"
+                                                    v-model="conditionWithRelation.condition.value as number[]"
                                                     v-if="conditionWithRelation.condition.field === TransactionExplorerConditionField.TransactionTimeDayOfWeek.value"
                                                 >
                                                     <template #item="{ props, internalItem }">
@@ -183,7 +185,7 @@
                                                     :disabled="loading || disabled || !!editingQuery"
                                                     :placeholder="tt('None')"
                                                     :items="allAvailableDayOfMonthOptions"
-                                                    v-model="conditionWithRelation.condition.value"
+                                                    v-model="conditionWithRelation.condition.value as number[]"
                                                     v-else-if="conditionWithRelation.condition.field === TransactionExplorerConditionField.TransactionTimeDayOfMonth.value"
                                                 >
                                                     <template #item="{ props, internalItem }">
@@ -205,7 +207,7 @@
                                                     :disabled="loading || disabled || !!editingQuery"
                                                     :placeholder="tt('None')"
                                                     :items="allAvailableMonthOfYearOptions"
-                                                    v-model="conditionWithRelation.condition.value"
+                                                    v-model="conditionWithRelation.condition.value as number[]"
                                                     v-else-if="conditionWithRelation.condition.field === TransactionExplorerConditionField.TransactionTimeMonthOfYear.value"
                                                 >
                                                     <template #item="{ props, internalItem }">
@@ -227,7 +229,7 @@
                                                     :disabled="loading || disabled || !!editingQuery"
                                                     :placeholder="tt('None')"
                                                     :items="allAvailableHourOfDayOptions"
-                                                    v-model="conditionWithRelation.condition.value"
+                                                    v-model="conditionWithRelation.condition.value as number[]"
                                                     v-else-if="conditionWithRelation.condition.field === TransactionExplorerConditionField.TransactionTimeHourOfDay.value"
                                                 >
                                                     <template #item="{ props, internalItem }">
@@ -278,7 +280,7 @@
                                                         { type: TransactionType.Income, displayName: tt('Income') },
                                                         { type: TransactionType.Transfer, displayName: tt('Transfer') }
                                                     ]"
-                                                    v-model="conditionWithRelation.condition.value"
+                                                    v-model="conditionWithRelation.condition.value as number[]"
                                                     v-else-if="conditionWithRelation.condition.field === TransactionExplorerConditionField.TransactionType.value"
                                                 >
                                                     <template #item="{ props, internalItem }">
@@ -363,7 +365,7 @@
                                                                         conditionWithRelation.condition.operator !== TransactionExplorerConditionOperator.LongitudeBetween.value &&
                                                                         conditionWithRelation.condition.operator !== TransactionExplorerConditionOperator.LongitudeNotBetween.value"
                                                     />
-                                                    <number-input density="compact"
+                                                    <number-input autocomplete="off" density="compact"
                                                                   :disabled="loading || disabled || !!editingQuery"
                                                                   :min-value="TransactionExplorerGeoLocationCondition.MIN_LATITUDE"
                                                                   :max-value="TransactionExplorerGeoLocationCondition.MAX_LATITUDE"
@@ -408,6 +410,7 @@
 
                                                 <div class="d-flex w-100" v-else-if="conditionWithRelation.condition.field === TransactionExplorerConditionField.TransactionTag.value">
                                                     <v-text-field
+                                                        autocomplete="off"
                                                         disabled
                                                         persistent-placeholder
                                                         density="compact"
@@ -435,7 +438,7 @@
                                                                          conditionWithRelation.condition.operator === TransactionExplorerConditionOperator.IsEmpty.value || conditionWithRelation.condition.operator === TransactionExplorerConditionOperator.IsNotEmpty.value"
                                                 />
 
-                                                <v-text-field density="compact"
+                                                <v-text-field autocomplete="off" density="compact"
                                                               :disabled="loading || disabled || !!editingQuery"
                                                               :placeholder="tt('None')"
                                                               v-model="conditionWithRelation.condition.value"
@@ -533,6 +536,7 @@ import {
 } from '@/consts/timezone.ts';
 
 import {
+    type TransactionExplorerConditionWithRelation,
     type TransactionExplorerCondition,
     TransactionExplorerQuery,
     TransactionExplorerGeoLocationCondition

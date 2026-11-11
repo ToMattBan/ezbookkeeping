@@ -39,7 +39,7 @@ import { DISPLAY_HIDDEN_AMOUNT, INCOMPLETE_AMOUNT_SUFFIX } from '@/consts/numera
 
 import { type TransactionMonthlyIncomeAndExpenseData } from '@/models/transaction.ts';
 
-import { BIG_DECIMAL_ZERO } from '@/lib/numeral.ts';
+import { BIG_DECIMAL_ZERO, parseBigDecimal } from '@/lib/numeral.ts';
 import { parseDateTimeFromUnixTime } from '@/lib/datetime.ts';
 import { getExpenseAndIncomeAmountColor } from '@/lib/ui/common.ts';
 
@@ -219,10 +219,10 @@ const chartOptions = computed<object>(() => {
         grid: {
             left: props.noMargin ? 0 : 10,
             right: props.noMargin ? 0 : 10,
-            top: props.noMargin ? 0 : (showIncomeAndExpense.value ? 10 : 5),
+            top: props.noMargin ? 5 : (showIncomeAndExpense.value ? 10 : 5),
             bottom: props.chartType === TrendChartType.Area.type
                 ? props.noMargin ? 0 : (!props.hideXAxisLabels ? 30 : 10) + (!props.hideLegend ? 25 : 0)
-                : (!props.hideXAxisLabels ? 20 : 0) + (!props.hideLegend ? 25 : 0) + (showIncomeAndExpense.value ? 20 : 10),
+                : props.noMargin ? 10 : ((!props.hideXAxisLabels ? 20 : 0) + (!props.hideLegend ? 25 : 0) + (showIncomeAndExpense.value ? 20 : 10)),
         },
         xAxis: [
             {
@@ -251,6 +251,14 @@ const chartOptions = computed<object>(() => {
                 axisLabel: {
                     show: false
                 },
+                axisPointer: props.chartType === TrendChartType.Area.type ? {
+                    label: {
+                        show: showAmountInHomePage.value,
+                        formatter: (params: CallbackDataParams) => {
+                            return getDisplayAmount(parseBigDecimal(params.value as number).truncate(), false);
+                        }
+                    }
+                } : undefined,
                 splitLine: {
                     show: false
                 }

@@ -1,7 +1,7 @@
 package mcp
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"reflect"
 
 	"github.com/mayswind/ezbookkeeping/pkg/core"
@@ -26,6 +26,11 @@ type MCPQueryAllAccountsResponse struct {
 type mcpQueryAllAccountsToolHandler struct{}
 
 var MCPQueryAllAccountsToolHandler = &mcpQueryAllAccountsToolHandler{}
+
+// ToolType returns the MCP tool type
+func (h *mcpQueryAllAccountsToolHandler) ToolType() core.MCPToolType {
+	return core.MCP_TOOL_TYPE_QUERY_ALL_ACCOUNTS
+}
 
 // Name returns the name of the MCP tool
 func (h *mcpQueryAllAccountsToolHandler) Name() string {

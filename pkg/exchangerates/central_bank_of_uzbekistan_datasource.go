@@ -1,7 +1,7 @@
 package exchangerates
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"math"
 	"net/http"
 	"time"
@@ -13,6 +13,9 @@ import (
 	"github.com/mayswind/ezbookkeeping/pkg/utils"
 	"github.com/mayswind/ezbookkeeping/pkg/validators"
 )
+
+// API Documentation:
+// https://cbu.uz/en/arkhiv-kursov-valyut/veb-masteram/
 
 const centralBankOfUzbekistanExchangeRateUrl = "https://cbu.uz/ru/arkhiv-kursov-valyut/json/"
 const centralBankOfUzbekistanExchangeRateReferenceUrl = "https://cbu.uz/en/arkhiv-kursov-valyut/"
@@ -119,7 +122,7 @@ func (e *CentralBankOfUzbekistanExchangeRate) ToLatestExchangeRate(c core.Contex
 		return nil
 	}
 
-	finalRate := 1000 * unit / rate
+	finalRate := unit / rate
 
 	if math.IsInf(finalRate, 0) {
 		return nil

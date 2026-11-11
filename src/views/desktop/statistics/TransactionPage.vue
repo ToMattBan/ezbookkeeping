@@ -138,15 +138,27 @@
                                 </v-btn>
                                 <v-spacer/>
                                 <div class="transaction-keyword-filter ms-2">
-                                    <v-text-field density="compact" :disabled="loading"
+                                    <v-text-field autocomplete="off" density="compact" :disabled="loading"
                                                   :prepend-inner-icon="mdiMagnify"
-                                                  :append-inner-icon="filterKeyword !== query.keyword ? mdiCheck : undefined"
                                                   :placeholder="tt('Filter transaction description')"
                                                   v-model="filterKeyword"
                                                   v-if="canUseKeywordFilter"
-                                                  @click:append-inner="setKeywordFilter(filterKeyword)"
                                                   @keyup.enter="setKeywordFilter(filterKeyword)"
-                                    />
+                                    >
+                                        <template #append-inner>
+                                            <v-tooltip :text="tt('Filter')" v-if="filterKeyword !== query.keyword">
+                                                <template v-slot:activator="{ props }">
+                                                    <v-icon :icon="mdiCheck"
+                                                            :aria-label="tt('Filter')"
+                                                            :disabled="loading"
+                                                            @click="setKeywordFilter(filterKeyword)"
+                                                            @keydown.enter.stop.prevent="setKeywordFilter(filterKeyword)"
+                                                            @keydown.space.stop.prevent="setKeywordFilter(filterKeyword)"
+                                                            v-bind="props" />
+                                                </template>
+                                            </v-tooltip>
+                                        </template>
+                                    </v-text-field>
                                 </div>
                                 <v-btn density="comfortable" color="default" variant="text" class="ms-2"
                                        :aria-label="tt('More')" :disabled="loading" :icon="true">
@@ -574,6 +586,7 @@ const {
     getAllCategoricalChartTypes,
     getAllTrendChartTypes,
     formatAmountToWesternArabicNumeralsWithoutDigitGrouping,
+    formatBigDecimalToWesternArabicNumeralsWithoutDigitGrouping,
     formatPercentToLocalizedNumerals
 } = useI18n();
 
@@ -1243,7 +1256,7 @@ function exportResults(): void {
                 .map(item => [
                     item.name,
                     formatAmountToWesternArabicNumeralsWithoutDigitGrouping(item.value, defaultCurrency.value),
-                    item.percent.toFixed(4)
+                    formatBigDecimalToWesternArabicNumeralsWithoutDigitGrouping(parseBigDecimal(item.percent.toFixed(4)))
                 ]),
             supportedMermaidCharts: supportedMermaidCharts
         });

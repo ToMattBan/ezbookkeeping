@@ -20,7 +20,7 @@ export class Transaction implements TransactionInfoResponse {
     public incomeCategoryId: string = '';
     public transferCategoryId: string = '';
     public time: number;
-    public timeZone?: string; // only in new transaction
+    public timeZone?: string; // only in new transaction or scheduled transaction
     public utcOffset: number;
     public sourceAccountId: string;
     public destinationAccountId: string;
@@ -603,9 +603,19 @@ export interface TransactionBatchDeleteRequest {
     readonly password: string;
 }
 
+export interface TransactionCreateBatchRequest {
+    readonly transactions: TransactionCreateRequest[];
+}
+
 export interface TransactionImportRequest {
     readonly transactions: TransactionCreateRequest[];
     readonly clientSessionId: string;
+}
+
+export interface TransactionImportResponse {
+    readonly finished: boolean;
+    readonly importedCount: number;
+    readonly totalCount: number;
 }
 
 export interface TransactionListByMaxTimeRequest {
@@ -804,6 +814,19 @@ export interface TransactionReconciliationStatementResponse {
     readonly totalOutflows: string;
     readonly openingBalance: string;
     readonly closingBalance: string;
+}
+
+export interface TransactionUnreconciledCountRequest {
+    readonly accountIds: string[];
+}
+
+export interface TransactionUnreconciledCountItem {
+    readonly accountId: string;
+    readonly count: number;
+}
+
+export interface TransactionUnreconciledCountResponse {
+    readonly items: TransactionUnreconciledCountItem[];
 }
 
 export interface TransactionReconciliationStatementResponseItemWithInfo extends TransactionReconciliationStatementResponseItem {
@@ -1022,6 +1045,10 @@ export interface TransactionInsightDataItem extends TransactionInfoResponse {
     readonly geoLocation?: TransactionGeoLocationResponse;
 }
 
+export interface TransactionInsightDataItemWithQueryIndexes extends TransactionInsightDataItem {
+    readonly queryIndexes: number[];
+}
+
 export type TransactionAmountsResponse = PartialRecord<TransactionAmountsRequestType, TransactionAmountsResponseItem>;
 
 export interface TransactionAmountsResponseItem {
@@ -1042,6 +1069,7 @@ export interface TransactionDailyAmountsRequest {
     readonly useTransactionTimezone: boolean;
     readonly excludeAccountIds: string[];
     readonly excludeCategoryIds: string[];
+    readonly tagFilter: string;
 }
 
 export interface TransactionDailyAmountsResponseItem {

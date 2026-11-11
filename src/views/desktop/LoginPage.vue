@@ -62,26 +62,51 @@
                                             :disabled="loggingInByPassword || loggingInByOAuth2 || verifying"
                                             :label="tt('Passcode')"
                                             :placeholder="tt('Passcode')"
-                                            :append-inner-icon="mdiHelpCircleOutline"
                                             v-model="passcode"
-                                            @click:append-inner="twoFAVerifyType = 'backupcode'"
                                             @keyup.enter="verify"
                                             v-if="twoFAVerifyType === 'passcode'"
-                                        />
+                                        >
+                                            <template #append-inner>
+                                                <v-tooltip :text="tt('Use Backup Code')">
+                                                    <template v-slot:activator="{ props }">
+                                                        <v-icon :icon="mdiHelpCircleOutline"
+                                                                :aria-label="tt('Use Backup Code')"
+                                                                :disabled="loggingInByPassword || loggingInByOAuth2 || verifying"
+                                                                @click="twoFAVerifyType = 'backupcode'"
+                                                                @keydown.enter.stop.prevent="twoFAVerifyType = 'backupcode'"
+                                                                @keydown.space.stop.prevent="twoFAVerifyType = 'backupcode'"
+                                                                v-bind="props" />
+                                                    </template>
+                                                </v-tooltip>
+                                            </template>
+                                        </v-text-field>
                                         <v-text-field
                                             type="text"
+                                            autocomplete="off"
                                             :disabled="loggingInByPassword || loggingInByOAuth2 || verifying"
                                             :label="tt('Backup Code')"
                                             :placeholder="tt('Backup Code')"
-                                            :append-inner-icon="mdiOnepassword"
                                             v-model="backupCode"
-                                            @click:append-inner="twoFAVerifyType = 'passcode'"
                                             @keyup.enter="verify"
                                             v-if="twoFAVerifyType === 'backupcode'"
-                                        />
+                                        >
+                                            <template #append-inner>
+                                                <v-tooltip :text="tt('Use Passcode')">
+                                                    <template v-slot:activator="{ props }">
+                                                        <v-icon :icon="mdiOnepassword"
+                                                                :aria-label="tt('Use Passcode')"
+                                                                :disabled="loggingInByPassword || loggingInByOAuth2 || verifying"
+                                                                @click="twoFAVerifyType = 'passcode'"
+                                                                @keydown.enter.stop.prevent="twoFAVerifyType = 'passcode'"
+                                                                @keydown.space.stop.prevent="twoFAVerifyType = 'passcode'"
+                                                                v-bind="props" />
+                                                    </template>
+                                                </v-tooltip>
+                                            </template>
+                                        </v-text-field>
                                     </v-col>
 
-                                    <v-col cols="12" class="auth-links text-body-large py-0 mt-1 mb-4">
+                                    <v-col cols="12" class="auth-links text-body-large py-0 mt-1 mb-4" v-if="isInternalAuthEnabled()">
                                         <div class="d-flex align-center justify-space-between flex-wrap">
                                             <a href="javascript:void(0);"
                                                :class="{ 'disabled': loggingInByPassword || loggingInByOAuth2 || verifying }"
@@ -119,6 +144,16 @@
                                             {{ oauth2LoginDisplayName }}
                                             <v-progress-circular indeterminate size="22" class="ms-2" v-if="loggingInByOAuth2"></v-progress-circular>
                                         </v-btn>
+                                    </v-col>
+
+                                    <v-col cols="12" class="auth-links text-body-large" v-if="!isInternalAuthEnabled()">
+                                        <div class="text-center">
+                                            <a href="javascript:void(0);"
+                                               :class="{ 'disabled': loggingInByPassword || loggingInByOAuth2 || verifying }"
+                                               @click="showMobileQrCode = true">
+                                                <span class="nav-item-title">{{ tt('Use on Mobile Device') }}</span>
+                                            </a>
+                                        </div>
                                     </v-col>
 
                                     <v-col cols="12" class="auth-links text-center text-body-large mt-2" v-if="isInternalAuthEnabled()">

@@ -31,6 +31,7 @@
                                 auto-select-first
                                 persistent-placeholder
                                 max-width="600px"
+                                :menu-props="{ contentClass: 'select-menu-x-large' }"
                                 :placeholder="tt('Timezone')"
                                 :items="allTimezones"
                                 :no-data-text="tt('No results')"
@@ -146,6 +147,19 @@
                                 </template>
                             </v-btn>
                         </div>
+
+                        <div class="setting-item">
+                            <span>{{ tt('Transaction Tags Included in Overview Statistics') }}</span>
+                            <v-spacer/>
+                            <v-btn class="ms-4" variant="outlined" color="default"
+                                   :disabled="!hasAnyTransactionTag" :loading="loadingTags"
+                                   @click="showTransactionTagsIncludedInHomePageOverviewDialog = true">
+                                {{ tt(settingsStore.appSettings.overviewTransactionTagFilterInHomePage ? 'Custom' : 'All') }}
+                                <template #loader>
+                                    <v-progress-circular indeterminate size="20"/>
+                                </template>
+                            </v-btn>
+                        </div>
                     </v-card-text>
                 </v-form>
             </v-card>
@@ -178,9 +192,34 @@
                         </div>
 
                         <div class="setting-item">
+                            <span>{{ tt('Total Amount Calculation Method') }}</span>
+                            <v-spacer/>
+                            <v-select
+                                class="ms-4"
+                                density="compact"
+                                item-title="name"
+                                item-value="value"
+                                persistent-placeholder
+                                max-width="400px"
+                                :placeholder="tt('Total Amount Calculation Method')"
+                                :items="[
+                                    { name: tt('Inflows and Outflows'), value: TransactionAmountType.InflowsAndOutflows },
+                                    { name: tt('Income and Expense'), value: TransactionAmountType.IncomeAndExpense }
+                                ]"
+                                v-model="totalAmountTypeInTransactionListPage"
+                            />
+                        </div>
+
+                        <div class="setting-item">
                             <span>{{ tt('Show Transaction Tags') }}</span>
                             <v-spacer/>
                             <v-switch class="ms-4" v-model="showTagInTransactionListPage"/>
+                        </div>
+
+                        <div class="setting-item">
+                            <span>{{ tt('Show Transaction Picture Indicator') }}</span>
+                            <v-spacer/>
+                            <v-switch class="ms-4" v-model="showPictureIndicatorInTransactionListPage"/>
                         </div>
 
                         <div class="setting-item">
@@ -305,6 +344,7 @@
                                 item-value="type"
                                 persistent-placeholder
                                 max-width="400px"
+                                :menu-props="{ contentClass: 'select-menu-medium' }"
                                 :placeholder="tt('Default Date Range')"
                                 :items="allInsightsExplorerDefaultDateRanges"
                                 v-model="insightsExplorerDefaultDateRangeType"
@@ -354,6 +394,7 @@
                                 item-value="type"
                                 persistent-placeholder
                                 max-width="400px"
+                                :menu-props="{ contentClass: 'select-menu-medium' }"
                                 :placeholder="tt('Default Date Range for Reconciliation Statement Button')"
                                 :items="allReconciliationStatementDateRanges"
                                 v-model="reconciliationStatementButtonDefaultDateRangeTypeInDesktop"
@@ -398,6 +439,10 @@
                                      v-model:show="showTransactionCategoriesIncludedInHomePageOverviewDialog"
                                      @settings:change="showTransactionCategoriesIncludedInHomePageOverviewDialog = false" />
 
+    <transaction-tag-filter-settings-dialog type="homePageOverview"
+                                            v-model:show="showTransactionTagsIncludedInHomePageOverviewDialog"
+                                            @settings:change="showTransactionTagsIncludedInHomePageOverviewDialog = false" />
+
     <account-filter-settings-dialog type="accountListTotalAmount"
                                     v-model:show="showAccountsIncludedInTotalDialog"
                                     @settings:change="showAccountsIncludedInTotalDialog = false" />
@@ -412,6 +457,7 @@
 import SnackBar from '@/components/desktop/SnackBar.vue';
 import AccountFilterSettingsDialog from '@/views/desktop/common/dialogs/AccountFilterSettingsDialog.vue';
 import CategoryFilterSettingsDialog from '@/views/desktop/common/dialogs/CategoryFilterSettingsDialog.vue';
+import TransactionTagFilterSettingsDialog from '@/views/desktop/common/dialogs/TransactionTagFilterSettingsDialog.vue';
 import ChartColorSchemeDialog from './dialogs/ChartColorSchemeDialog.vue';
 import AccountCategoryDisplayOrderDialog from './dialogs/AccountCategoryDisplayOrderDialog.vue';
 
@@ -425,11 +471,12 @@ import { useAppSettingPageBase } from '@/views/base/settings/AppSettingsPageBase
 import { useSettingsStore } from '@/stores/setting.ts';
 import { useAccountsStore } from '@/stores/account.ts';
 import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
-
+import { useTransactionTagsStore } from '@/stores/transactionTag.ts';
 import type { NameNumeralValue } from '@/core/base.ts';
 import { ThemeType } from '@/core/theme.ts';
 import { type LocalizedDateRange, DateRangeScene } from '@/core/datetime.ts';
 import { CategoryType } from '@/core/category.ts';
+import { TransactionAmountType } from '@/core/transaction.ts';
 import { DEFAULT_RECONCILIATION_STATEMENT_DATE_RANGE_IN_DESKTOP } from '@/core/statistics.ts';
 
 import { DEFAULT_PAGE_COUNTS } from '@/consts/page.ts';
@@ -448,6 +495,7 @@ const { tt, getAllDateRanges, getTablePageOptions } = useI18n();
 const {
     loadingAccounts,
     loadingTransactionCategories,
+    loadingTags,
     allThemes,
     allTimezones,
     allTimezoneTypesUsedForStatistics,
@@ -459,6 +507,7 @@ const {
     hasAnyAccount,
     hasAnyVisibleAccount,
     hasAnyTransactionCategory,
+    hasAnyTransactionTag,
     timeZone,
     isAutoUpdateExchangeRatesData,
     showAccountBalance,
@@ -466,7 +515,9 @@ const {
     itemsCountInTransactionListPage,
     timezoneUsedForStatisticsInHomePage,
     showTotalAmountInTransactionListPage,
+    totalAmountTypeInTransactionListPage,
     showTagInTransactionListPage,
+    showPictureIndicatorInTransactionListPage,
     defaultKeywordMatchModeInTransactionListPage,
     autoSaveTransactionDraft,
     isAutoGetCurrentGeoLocation,
@@ -485,6 +536,7 @@ const {
 const settingsStore = useSettingsStore();
 const accountsStore = useAccountsStore();
 const transactionCategoriesStore = useTransactionCategoriesStore();
+const transactionTagsStore = useTransactionTagsStore();
 
 const snackbar = useTemplateRef<SnackBarType>('snackbar');
 const chartColorSchemeDialog = useTemplateRef<ChartColorSchemeDialogType>('chartColorSchemeDialog');
@@ -492,6 +544,7 @@ const accountCategorysDisplayOrderDialog = useTemplateRef<AccountCategoryDisplay
 
 const showAccountsIncludedInHomePageOverviewDialog = ref<boolean>(false);
 const showTransactionCategoriesIncludedInHomePageOverviewDialog = ref<boolean>(false);
+const showTransactionTagsIncludedInHomePageOverviewDialog = ref<boolean>(false);
 const showAccountsIncludedInTotalDialog = ref<boolean>(false);
 
 const allPageCounts = computed<NameNumeralValue[]>(() => getTablePageOptions(DEFAULT_PAGE_COUNTS, undefined, false, true));
@@ -553,6 +606,7 @@ const reconciliationStatementButtonDefaultDateRangeTypeInDesktop = computed<numb
 function init(): void {
     loadingAccounts.value = true;
     loadingTransactionCategories.value = true;
+    loadingTags.value = true;
 
     accountsStore.loadAllAccounts({
         force: false
@@ -572,6 +626,18 @@ function init(): void {
         loadingTransactionCategories.value = false;
     }).catch(error => {
         loadingTransactionCategories.value = false;
+
+        if (!error.processed) {
+            snackbar.value?.showError(error);
+        }
+    });
+
+    transactionTagsStore.loadAllTags({
+        force: false
+    }).then(() => {
+        loadingTags.value = false;
+    }).catch(error => {
+        loadingTags.value = false;
 
         if (!error.processed) {
             snackbar.value?.showError(error);

@@ -146,6 +146,7 @@ const (
 // Exchange rates data source types
 const (
 	CentralBankOfArgentinaDataSource   string = "central_bank_of_argentina"
+	NationalBankOfBelarusDataSource    string = "national_bank_of_belarus"
 	BankOfCanadaDataSource             string = "bank_of_canada"
 	CzechNationalBankDataSource        string = "czech_national_bank"
 	DanmarksNationalbankDataSource     string = "danmarks_national_bank"
@@ -153,7 +154,9 @@ const (
 	NationalBankOfGeorgiaDataSource    string = "national_bank_of_georgia"
 	CentralBankOfHungaryDataSource     string = "central_bank_of_hungary"
 	BankOfIsraelDataSource             string = "bank_of_israel"
+	BankOfItalyDataSource              string = "bank_of_italy"
 	NationalBankOfKazakhstanDataSource string = "national_bank_of_kazakhstan"
+	CentralBankOfMalaysiaDataSource    string = "central_bank_of_malaysia"
 	CentralBankOfMyanmarDataSource     string = "central_bank_of_myanmar"
 	NorgesBankDataSource               string = "norges_bank"
 	NationalBankOfPolandDataSource     string = "national_bank_of_poland"
@@ -190,15 +193,18 @@ const (
 	defaultInMemoryDuplicateCheckerCleanupInterval uint32 = 60  // 1 minutes
 	defaultDuplicateSubmissionsInterval            uint32 = 300 // 5 minutes
 
-	defaultSecretKey                     string = "ezbookkeeping"
-	defaultTrustedProxyIPs               string = "10.0.0.0/8,169.254.0.0/16,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
-	defaultTokenExpiredTime              uint32 = 2592000 // 30 days
-	defaultTokenMinRefreshInterval       uint32 = 86400   // 1 day
-	defaultTemporaryTokenExpiredTime     uint32 = 300     // 5 minutes
-	defaultEmailVerifyTokenExpiredTime   uint32 = 3600    // 60 minutes
-	defaultPasswordResetTokenExpiredTime uint32 = 3600    // 60 minutes
-	defaultMaxFailuresPerIpPerMinute     uint32 = 5
-	defaultMaxFailuresPerUserPerMinute   uint32 = 5
+	defaultSecretKey                          string = "ezbookkeeping"
+	defaultTrustedProxyIPs                    string = "10.0.0.0/8,169.254.0.0/16,127.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+	defaultTokenExpiredTime                   uint32 = 2592000 // 30 days
+	defaultTokenMinRefreshInterval            uint32 = 86400   // 1 day
+	defaultTemporaryTokenExpiredTime          uint32 = 300     // 5 minutes
+	defaultEmailVerifyTokenExpiredTime        uint32 = 3600    // 60 minutes
+	defaultUserAvatarTokenExpiredTime         uint32 = 3600    // 60 minutes
+	defaultUserCustomIconTokenExpiredTime     uint32 = 3600    // 60 minutes
+	defaultTransactionPictureTokenExpiredTime uint32 = 3600    // 60 minutes
+	defaultPasswordResetTokenExpiredTime      uint32 = 3600    // 60 minutes
+	defaultMaxFailuresPerIpPerMinute          uint32 = 5
+	defaultMaxFailuresPerUserPerMinute        uint32 = 5
 
 	defaultOAuth2StateExpiredTime uint32 = 300   // 5 minutes
 	defaultOAuth2RequestTimeout   uint32 = 10000 // 10 seconds
@@ -377,6 +383,7 @@ type Config struct {
 	// Large Language Model
 	TransactionFromAITextRecognition  bool
 	TransactionFromAIImageRecognition bool
+	InsightsExplorerCodingAssistant   bool
 	MaxAIRecognitionPictureFileSize   uint32
 
 	// Large Language Model for Transaction Text Recognition
@@ -384,6 +391,9 @@ type Config struct {
 
 	// Large Language Model for Receipt Image Recognition
 	ReceiptImageRecognitionLLMConfig *LLMConfig
+
+	// Large Language Model for coding assistant
+	CodingAssistantLLMConfig *LLMConfig
 
 	// Uuid
 	UuidGeneratorType string
@@ -402,23 +412,29 @@ type Config struct {
 	EnableCreateScheduledTransaction bool
 
 	// Secret
-	SecretKeyNoSet                        bool
-	SecretKey                             string
-	TrustedProxyIPs                       []*net.IPNet
-	TrustedProxyTextualIPs                []string
-	TokenExpiredTime                      uint32
-	TokenExpiredTimeDuration              time.Duration
-	TokenMinRefreshInterval               uint32
-	TemporaryTokenExpiredTime             uint32
-	TemporaryTokenExpiredTimeDuration     time.Duration
-	EmailVerifyTokenExpiredTime           uint32
-	EmailVerifyTokenExpiredTimeDuration   time.Duration
-	PasswordResetTokenExpiredTime         uint32
-	PasswordResetTokenExpiredTimeDuration time.Duration
-	EnableAPIToken                        bool
-	APITokenAllowedRemoteIPs              []*core.IPPattern
-	MaxFailuresPerIpPerMinute             uint32
-	MaxFailuresPerUserPerMinute           uint32
+	SecretKeyNoSet                             bool
+	SecretKey                                  string
+	TrustedProxyIPs                            []*net.IPNet
+	TrustedProxyTextualIPs                     []string
+	TokenExpiredTime                           uint32
+	TokenExpiredTimeDuration                   time.Duration
+	TokenMinRefreshInterval                    uint32
+	TemporaryTokenExpiredTime                  uint32
+	TemporaryTokenExpiredTimeDuration          time.Duration
+	EmailVerifyTokenExpiredTime                uint32
+	EmailVerifyTokenExpiredTimeDuration        time.Duration
+	PasswordResetTokenExpiredTime              uint32
+	PasswordResetTokenExpiredTimeDuration      time.Duration
+	UserAvatarTokenExpiredTime                 uint32
+	UserAvatarTokenExpiredTimeDuration         time.Duration
+	UserCustomIconTokenExpiredTime             uint32
+	UserCustomIconTokenExpiredTimeDuration     time.Duration
+	TransactionPictureTokenExpiredTime         uint32
+	TransactionPictureTokenExpiredTimeDuration time.Duration
+	EnableAPIToken                             bool
+	APITokenAllowedRemoteIPs                   []*core.IPPattern
+	MaxFailuresPerIpPerMinute                  uint32
+	MaxFailuresPerUserPerMinute                uint32
 
 	// Auth
 	EnableInternalAuth                bool
@@ -472,6 +488,7 @@ type Config struct {
 	// Map
 	MapProvider                           string
 	EnableMapDataFetchProxy               bool
+	SupportMapDataFetchProxy              bool
 	MapProxy                              string
 	TomTomMapAPIKey                       string
 	TianDiTuAPIKey                        string
@@ -493,6 +510,9 @@ type Config struct {
 	ExchangeRatesRequestTimeoutExceedDefaultValue bool
 	ExchangeRatesProxy                            string
 	ExchangeRatesSkipTLSVerify                    bool
+
+	// Developer Tools
+	EnableLanguagePreview bool
 }
 
 // LoadConfiguration loads setting config from given config file path
@@ -556,7 +576,7 @@ func LoadConfiguration(configFilePath string) (*Config, error) {
 		return nil, err
 	}
 
-	err = loadLLMGlobalConfiguration(config, cfgFile, "llm")
+	err = loadAIConfiguration(config, cfgFile, "ai")
 
 	if err != nil {
 		return nil, err
@@ -569,6 +589,12 @@ func LoadConfiguration(configFilePath string) (*Config, error) {
 	}
 
 	config.ReceiptImageRecognitionLLMConfig, err = loadLLMConfiguration(cfgFile, "llm_image_recognition")
+
+	if err != nil {
+		return nil, err
+	}
+
+	config.CodingAssistantLLMConfig, err = loadLLMConfiguration(cfgFile, "llm_coding_assistant")
 
 	if err != nil {
 		return nil, err
@@ -635,6 +661,12 @@ func LoadConfiguration(configFilePath string) (*Config, error) {
 	}
 
 	err = loadExchangeRatesConfiguration(config, cfgFile, "exchange_rates")
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = loadDeveloperTools(config, cfgFile, "developer")
 
 	if err != nil {
 		return nil, err
@@ -737,7 +769,7 @@ func loadMCPServerConfiguration(config *Config, configFile *ini.File, sectionNam
 func loadDatabaseConfiguration(config *Config, configFile *ini.File, sectionName string) error {
 	dbConfig := &DatabaseConfig{}
 
-	dbConfig.DatabaseType = getConfigItemStringValue(configFile, sectionName, "type", MySqlDbType)
+	dbConfig.DatabaseType = getConfigItemStringValue(configFile, sectionName, "type")
 
 	if dbConfig.DatabaseType != MySqlDbType &&
 		dbConfig.DatabaseType != PostgresDbType &&
@@ -911,9 +943,10 @@ func loadStorageConfiguration(config *Config, configFile *ini.File, sectionName 
 	return nil
 }
 
-func loadLLMGlobalConfiguration(config *Config, configFile *ini.File, sectionName string) error {
+func loadAIConfiguration(config *Config, configFile *ini.File, sectionName string) error {
 	config.TransactionFromAITextRecognition = getConfigItemBoolValue(configFile, sectionName, "transaction_from_ai_text_recognition", false)
 	config.TransactionFromAIImageRecognition = getConfigItemBoolValue(configFile, sectionName, "transaction_from_ai_image_recognition", false)
+	config.InsightsExplorerCodingAssistant = getConfigItemBoolValue(configFile, sectionName, "insights_explorer_coding_assistant", false)
 	config.MaxAIRecognitionPictureFileSize = getConfigItemUint32Value(configFile, sectionName, "max_ai_recognition_picture_size", defaultAIRecognitionPictureMaxSize)
 
 	return nil
@@ -1103,6 +1136,30 @@ func loadSecurityConfiguration(config *Config, configFile *ini.File, sectionName
 
 	config.PasswordResetTokenExpiredTimeDuration = time.Duration(config.PasswordResetTokenExpiredTime) * time.Second
 
+	config.UserAvatarTokenExpiredTime = getConfigItemUint32Value(configFile, sectionName, "user_avatar_token_expired_time", defaultUserAvatarTokenExpiredTime)
+
+	if config.UserAvatarTokenExpiredTime < 60 {
+		return errs.ErrInvalidUserAvatarTokenExpiredTime
+	}
+
+	config.UserAvatarTokenExpiredTimeDuration = time.Duration(config.UserAvatarTokenExpiredTime) * time.Second
+
+	config.UserCustomIconTokenExpiredTime = getConfigItemUint32Value(configFile, sectionName, "user_custom_icon_token_expired_time", defaultUserCustomIconTokenExpiredTime)
+
+	if config.UserCustomIconTokenExpiredTime < 60 {
+		return errs.ErrInvalidUserCustomIconTokenExpiredTime
+	}
+
+	config.UserCustomIconTokenExpiredTimeDuration = time.Duration(config.UserCustomIconTokenExpiredTime) * time.Second
+
+	config.TransactionPictureTokenExpiredTime = getConfigItemUint32Value(configFile, sectionName, "transaction_picture_token_expired_time", defaultTransactionPictureTokenExpiredTime)
+
+	if config.TransactionPictureTokenExpiredTime < 60 {
+		return errs.ErrInvalidTransactionPictureTokenExpiredTime
+	}
+
+	config.TransactionPictureTokenExpiredTimeDuration = time.Duration(config.TransactionPictureTokenExpiredTime) * time.Second
+
 	config.EnableAPIToken = getConfigItemBoolValue(configFile, sectionName, "enable_api_token", false)
 	config.APITokenAllowedRemoteIPs, err = getIPPatterns(configFile, sectionName, "api_token_allowed_remote_ips", "")
 
@@ -1121,7 +1178,7 @@ func loadAuthConfiguration(config *Config, configFile *ini.File, sectionName str
 	config.EnableOAuth2Login = getConfigItemBoolValue(configFile, sectionName, "enable_oauth2_auth", false)
 	config.EnableTwoFactor = getConfigItemBoolValue(configFile, sectionName, "enable_two_factor", true)
 	config.EnableUserForgetPassword = getConfigItemBoolValue(configFile, sectionName, "enable_forget_password", false)
-	config.ForgetPasswordRequireVerifyEmail = getConfigItemBoolValue(configFile, sectionName, "forget_password_require_email_verify", false)
+	config.ForgetPasswordRequireVerifyEmail = getConfigItemBoolValue(configFile, sectionName, "forget_password_require_email_verify", true)
 	config.OAuth2ClientID = getConfigItemStringValue(configFile, sectionName, "oauth2_client_id")
 	config.OAuth2ClientSecret = getConfigItemStringValue(configFile, sectionName, "oauth2_client_secret")
 	config.OAuth2UsePKCE = getConfigItemBoolValue(configFile, sectionName, "oauth2_use_pkce", false)
@@ -1257,6 +1314,21 @@ func loadMapConfiguration(config *Config, configFile *ini.File, sectionName stri
 	}
 
 	config.EnableMapDataFetchProxy = getConfigItemBoolValue(configFile, sectionName, "map_data_fetch_proxy", false)
+
+	if config.MapProvider == OpenStreetMapProvider ||
+		config.MapProvider == OpenStreetMapHumanitarianStyleProvider ||
+		config.MapProvider == OpenTopoMapProvider ||
+		config.MapProvider == OPNVKarteMapProvider ||
+		config.MapProvider == CyclOSMMapProvider ||
+		config.MapProvider == CartoDBMapProvider ||
+		config.MapProvider == TomTomMapProvider ||
+		config.MapProvider == TianDiTuProvider ||
+		config.MapProvider == CustomProvider {
+		config.SupportMapDataFetchProxy = true
+	} else {
+		config.SupportMapDataFetchProxy = false
+	}
+
 	config.MapProxy = getConfigItemStringValue(configFile, sectionName, "proxy", "system")
 	config.TomTomMapAPIKey = getConfigItemStringValue(configFile, sectionName, "tomtom_map_api_key")
 	config.TianDiTuAPIKey = getConfigItemStringValue(configFile, sectionName, "tianditu_map_app_key")
@@ -1291,6 +1363,7 @@ func loadExchangeRatesConfiguration(config *Config, configFile *ini.File, sectio
 	dataSource := getConfigItemStringValue(configFile, sectionName, "data_source")
 
 	if dataSource == CentralBankOfArgentinaDataSource ||
+		dataSource == NationalBankOfBelarusDataSource ||
 		dataSource == BankOfCanadaDataSource ||
 		dataSource == CzechNationalBankDataSource ||
 		dataSource == DanmarksNationalbankDataSource ||
@@ -1298,7 +1371,9 @@ func loadExchangeRatesConfiguration(config *Config, configFile *ini.File, sectio
 		dataSource == NationalBankOfGeorgiaDataSource ||
 		dataSource == CentralBankOfHungaryDataSource ||
 		dataSource == BankOfIsraelDataSource ||
+		dataSource == BankOfItalyDataSource ||
 		dataSource == NationalBankOfKazakhstanDataSource ||
+		dataSource == CentralBankOfMalaysiaDataSource ||
 		dataSource == CentralBankOfMyanmarDataSource ||
 		dataSource == NorgesBankDataSource ||
 		dataSource == NationalBankOfPolandDataSource ||
@@ -1321,6 +1396,12 @@ func loadExchangeRatesConfiguration(config *Config, configFile *ini.File, sectio
 	}
 
 	config.ExchangeRatesSkipTLSVerify = getConfigItemBoolValue(configFile, sectionName, "skip_tls_verify", false)
+
+	return nil
+}
+
+func loadDeveloperTools(config *Config, configFile *ini.File, sectionName string) error {
+	config.EnableLanguagePreview = getConfigItemBoolValue(configFile, sectionName, "enable_language_preview", false)
 
 	return nil
 }

@@ -1,5 +1,5 @@
 <template>
-    <v-dialog width="1000" :persistent="isAccountModified" v-model="showState">
+    <v-dialog width="1000" :persistent="loading || submitting || isAccountModified" v-model="showState">
         <two-column-dialog-layout :disabled="loading || submitting" :loading="loading"
                                   :title="tt(title)" :cancel-button-title="tt('Cancel')"
                                   @cancel="cancel">
@@ -52,6 +52,7 @@
                                 <v-col cols="12" md="12">
                                     <v-text-field
                                         type="text"
+                                        autocomplete="off"
                                         persistent-placeholder
                                         :disabled="loading || submitting"
                                         :label="currentAccountIndex < 0 ? tt('Account Name') : tt('Sub-account Name')"
@@ -175,6 +176,7 @@
                                 <v-col cols="12" md="12">
                                     <v-textarea
                                         type="text"
+                                        autocomplete="off"
                                         persistent-placeholder
                                         rows="3"
                                         :disabled="loading || submitting"

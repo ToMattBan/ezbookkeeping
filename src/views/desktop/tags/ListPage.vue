@@ -148,7 +148,8 @@
                                                         <div class="d-flex align-center">
                                                             <div class="d-flex align-center" v-if="editingTag.id !== element.id">
                                                                 <v-badge class="right-bottom-icon" color="secondary"
-                                                                         location="bottom right" offset-x="8" :icon="mdiEyeOffOutline"
+                                                                         location="bottom right" offset-x="8"
+                                                                         :aria-label="tt('Hidden')" :icon="mdiEyeOffOutline"
                                                                          v-if="element.hidden">
                                                                     <v-icon size="20" start :icon="mdiPound"/>
                                                                 </v-badge>
@@ -156,7 +157,7 @@
                                                                 <span class="transaction-tag-name">{{ element.name }}</span>
                                                             </div>
 
-                                                            <v-text-field class="w-100 me-2" type="text"
+                                                            <v-text-field class="w-100 me-2" type="text" autocomplete="off"
                                                                           density="compact" variant="underlined"
                                                                           :disabled="loading || updating"
                                                                           :placeholder="tt('Tag Title')"
@@ -166,7 +167,8 @@
                                                             >
                                                                 <template #prepend>
                                                                     <v-badge class="right-bottom-icon" color="secondary"
-                                                                             location="bottom right" offset-x="8" :icon="mdiEyeOffOutline"
+                                                                             location="bottom right" offset-x="8"
+                                                                             :aria-label="tt('Hidden')" :icon="mdiEyeOffOutline"
                                                                              v-if="element.hidden">
                                                                         <v-icon size="20" start :icon="mdiPound"/>
                                                                     </v-badge>
@@ -263,7 +265,7 @@
                                         <tr :class="{ 'even-row': (availableTagCount & 1) === 1}">
                                             <td>
                                                 <div class="d-flex align-center">
-                                                    <v-text-field class="w-100 me-2" type="text" color="primary"
+                                                    <v-text-field class="w-100 me-2" type="text" autocomplete="off" color="primary"
                                                                   density="compact" variant="underlined"
                                                                   :disabled="loading || updating" :placeholder="tt('Tag Title')"
                                                                   v-model="newTag.name" @keyup.enter="save(newTag)">

@@ -1,5 +1,5 @@
 <template>
-    <v-dialog width="1000" :persistent="isTransactionModified || recognizing" v-model="showState">
+    <v-dialog width="1000" :persistent="loading || submitting || recognizing || isTransactionModified" v-model="showState">
         <two-column-dialog-layout :disabled="loading || submitting || recognizing" :loading="loading"
                                   :title="tt(title)" :cancel-button-title="tt(cancelButtonTitle)"
                                   @cancel="cancel">
@@ -15,7 +15,7 @@
                        :aria-label="tt('AI Clipboard Text Recognition')" :disabled="loading || submitting || recognizing"
                        v-if="mode !== TransactionEditPageMode.View && type === TransactionEditPageType.Transaction && activeTab === 'basicInfo' && isTransactionFromAITextRecognitionEnabled()"
                        @click="recognizeFromClipboard">
-                    <v-icon :icon="mdiMagicStaff" size="22" v-if="!recognizing"/>
+                    <v-icon :icon="mdiMagicStaff" size="20" v-if="!recognizing"/>
                     <v-tooltip activator="parent">{{ tt('AI Clipboard Text Recognition') }}</v-tooltip>
                     <v-progress-circular indeterminate size="22" v-if="recognizing"></v-progress-circular>
                 </v-btn>
@@ -109,6 +109,7 @@
                                 <v-col cols="12" v-if="type === TransactionEditPageType.Template && transaction instanceof TransactionTemplate">
                                     <v-text-field
                                         type="text"
+                                        autocomplete="off"
                                         persistent-placeholder
                                         :disabled="loading || submitting || recognizing"
                                         :label="tt('Template Name')"
@@ -293,7 +294,7 @@
                                         :readonly="mode === TransactionEditPageMode.View"
                                         :disabled="loading || submitting || recognizing || (mode === TransactionEditPageMode.Edit && transaction.type === TransactionType.ModifyBalance)"
                                         :label="tt('Transaction Timezone')"
-                                        :placeholder="!transaction.timeZone && transaction.timeZone !== '' ? `(${transactionDisplayTimezone}) ${transactionTimezoneTimeDifference}` : tt('Timezone')"
+                                        :placeholder="!transaction.timeZone && transaction.timeZone !== '' ? `(${transactionDisplayTimezone}) ${type === TransactionEditPageType.Transaction ? transactionTimezoneTimeDifference : ''}` : tt('Timezone')"
                                         :items="allTimezones"
                                         :no-data-text="tt('No results')"
                                         :model-value="transaction.timeZone"
@@ -328,12 +329,12 @@
                                         v-model:menu="geoMenuState"
                                     >
                                         <template #selection>
-                                            <span class="cursor-pointer" v-if="transaction.geoLocation">{{ `(${formatCoordinate(transaction.geoLocation, coordinateDisplayType)})` }}</span>
+                                            <span class="cursor-pointer" v-if="transaction.geoLocation">{{ `(${formatCoordinate(transaction.geoLocation)})` }}</span>
                                             <span class="cursor-pointer" v-else-if="!transaction.geoLocation">{{ geoLocationStatusInfo }}</span>
                                         </template>
 
                                         <template #no-data>
-                                            <v-list class="py-0">
+                                            <v-list class="py-0" @keydown.up.stop @keydown.down.stop>
                                                 <v-list-item class="text-body-medium" v-if="mode !== TransactionEditPageMode.View" @click="updateGeoLocation(true)">{{ tt('Update Geographic Location') }}</v-list-item>
                                                 <v-list-item class="text-body-medium" v-if="mode !== TransactionEditPageMode.View" @click="clearGeoLocation">{{ tt('Clear Geographic Location') }}</v-list-item>
                                             </v-list>
@@ -353,6 +354,7 @@
                                 <v-col cols="12" md="12">
                                     <v-textarea
                                         type="text"
+                                        autocomplete="off"
                                         persistent-placeholder
                                         rows="3"
                                         :readonly="mode === TransactionEditPageMode.View"
@@ -489,7 +491,7 @@
             <template #content>
                 <v-textarea no-resize persistent-placeholder
                             class="w-100 h-100 ps-4 always-cursor-text"
-                            rows="10" density="compact" variant="plain" :rounded="false"
+                            rows="10" autocomplete="off" density="compact" variant="plain" :rounded="false"
                             :disabled="recognizing"
                             :placeholder="tt('Click here to paste a transaction description')"
                             v-model="pastedText"></v-textarea>
@@ -544,7 +546,6 @@ import {
     getTimezoneOffsetMinutes,
     getCurrentUnixTime
 } from '@/lib/datetime.ts';
-import { formatCoordinate } from '@/lib/coordinate.ts';
 import { generateRandomUUID } from '@/lib/misc.ts';
 import {
     getTransactionPrimaryCategoryName,
@@ -602,7 +603,7 @@ const props = defineProps<{
     show?: boolean;
 }>();
 
-const { tt } = useI18n();
+const { tt, formatCoordinate } = useI18n();
 
 const {
     mode,
@@ -620,7 +621,6 @@ const {
     setGeoLocationByClickMap,
     transaction,
     defaultCurrency,
-    coordinateDisplayType,
     imageUploadQualityType,
     allTimezones,
     allVisibleAccounts,

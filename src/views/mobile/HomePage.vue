@@ -34,7 +34,7 @@
 
         <f7-popover class="template-popover-menu" target-el="#homepage-add-button"
                     v-model:opened="showTransactionTemplatePopover">
-            <f7-list dividers v-if="isTransactionFromAITextRecognitionEnabled() || isTransactionFromAIImageRecognitionEnabled() || (allTransactionTemplates && allTransactionTemplates.length)">
+            <f7-list dividers v-if="hasTransactionAddMenuItems">
                 <f7-list-item key="AIClipboardTextRecognition" link="#" no-chevron popover-close
                               :title="tt('AI Clipboard Text Recognition')"
                               @click="addByRecognizingClipboardText"
@@ -83,7 +83,12 @@ import { useTransactionCategoriesStore } from '@/stores/transactionCategory.ts';
 import { useTransactionTemplatesStore } from '@/stores/transactionTemplate.ts';
 import { useOverviewStore } from '@/stores/overview.ts';
 
-import { type MobileOverviewLayout, OverviewWidgetDataRequirement } from '@/core/overview_layout.ts';
+import type { PartialRecord } from '@/core/base.ts';
+import {
+    type MobileOverviewLayout,
+    OverviewWidgetDataRequirement,
+    MobileOverviewWidgetNavigationType
+} from '@/core/overview_layout.ts';
 import { TemplateType } from '@/core/template.ts';
 import { MOBILE_OVERVIEW_WIDGET_DEFINITIONS, DEFAULT_MOBILE_OVERVIEW_LAYOUT } from '@/consts/overview_layout.ts';
 
@@ -93,6 +98,7 @@ import { isFunction } from '@/lib/common.ts';
 import {
     getOverviewDataRequirements,
     getOverviewTransactionOverviewMonths,
+    getOverviewUnreconciledTransactionAccountIds,
     getOverviewRecentTransactionsQueries,
     getOverviewAssetTrendMonths,
     getOverviewCalendarHeatmapMonths,
@@ -142,8 +148,10 @@ const allTransactionTemplates = computed<TransactionTemplate[]>(() => {
     return allTemplates[TemplateType.Normal.type] || [];
 });
 
+const hasTransactionAddMenuItems = computed<boolean>(() => isTransactionFromAITextRecognitionEnabled() || isTransactionFromAIImageRecognitionEnabled() || (allTransactionTemplates.value && allTransactionTemplates.value.length > 0));
+
 function openTransactionTemplatePopover(): void {
-    if (isTransactionFromAIImageRecognitionEnabled() || (allTransactionTemplates.value && allTransactionTemplates.value.length)) {
+    if (hasTransactionAddMenuItems.value) {
         showTransactionTemplatePopover.value = true;
     }
 }
@@ -202,17 +210,24 @@ function reload(done?: () => void): void {
 }
 
 function reloadOverviewData(force: boolean): Promise<unknown>[] {
-    const requirements: OverviewWidgetDataRequirement[] = getOverviewDataRequirements(layout.value, MOBILE_OVERVIEW_WIDGET_DEFINITIONS);
+    const requirements: PartialRecord<OverviewWidgetDataRequirement, boolean> = getOverviewDataRequirements(layout.value, MOBILE_OVERVIEW_WIDGET_DEFINITIONS);
     const promises: Promise<unknown>[] = [];
 
-    if (requirements.includes(OverviewWidgetDataRequirement.TransactionOverview)) {
+    if (requirements[OverviewWidgetDataRequirement.TransactionOverview]) {
         promises.push(overviewStore.loadTransactionOverview({
             force: force,
             months: getOverviewTransactionOverviewMonths(layout.value)
         }));
     }
 
-    if (requirements.includes(OverviewWidgetDataRequirement.TransactionCategoryStatistics)) {
+    if (requirements[OverviewWidgetDataRequirement.AccountUnreconciledTransactionCounts]) {
+        promises.push(overviewStore.loadTransactionUnreconciledCounts({
+            force: force,
+            accountIds: getOverviewUnreconciledTransactionAccountIds(layout.value)
+        }));
+    }
+
+    if (requirements[OverviewWidgetDataRequirement.TransactionCategoryStatistics]) {
         for (const dateType of getOverviewTransactionCategoryStatisticDateTypes(layout.value)) {
             promises.push(overviewStore.loadTransactionCategoryStatistics({
                 force: force,
@@ -221,27 +236,27 @@ function reloadOverviewData(force: boolean): Promise<unknown>[] {
         }
     }
 
-    if (requirements.includes(OverviewWidgetDataRequirement.AssetTrends)) {
+    if (requirements[OverviewWidgetDataRequirement.AssetTrends]) {
         promises.push(overviewStore.loadTransactionAssetTrends({
             force: force,
             months: getOverviewAssetTrendMonths(layout.value)
         }));
     }
 
-    if (requirements.includes(OverviewWidgetDataRequirement.RecentTransactions)) {
+    if (requirements[OverviewWidgetDataRequirement.RecentTransactions]) {
         promises.push(overviewStore.loadRecentTransactions({
             force: force,
             queries: getOverviewRecentTransactionsQueries(layout.value)
         }));
     }
 
-    if (requirements.includes(OverviewWidgetDataRequirement.CurrentMonthTransactions)) {
+    if (requirements[OverviewWidgetDataRequirement.CurrentMonthTransactions]) {
         promises.push(overviewStore.loadCurrentMonthTransactions({
             force: force
         }));
     }
 
-    if (requirements.includes(OverviewWidgetDataRequirement.DailyTransactionAmounts)) {
+    if (requirements[OverviewWidgetDataRequirement.DailyTransactionAmounts]) {
         promises.push(overviewStore.loadTransactionDailyAmounts({
             force: force,
             months: getOverviewCalendarHeatmapMonths(layout.value)
@@ -327,9 +342,13 @@ function onReceiptRecognitionChanged(result: AIImageRecognitionResult): void {
     });
 }
 
-function onNavigate(path: string): void {
-    if (path) {
+function onNavigate(type: MobileOverviewWidgetNavigationType, path?: string): void {
+    if (type === MobileOverviewWidgetNavigationType.Url && path) {
         props.f7router.navigate(path);
+    } else if (type === MobileOverviewWidgetNavigationType.AIClipboardTextRecognition) {
+        addByRecognizingClipboardText();
+    } else if (type === MobileOverviewWidgetNavigationType.AIImageRecognition) {
+        showAIReceiptImageRecognitionSheet.value = true;
     }
 }
 

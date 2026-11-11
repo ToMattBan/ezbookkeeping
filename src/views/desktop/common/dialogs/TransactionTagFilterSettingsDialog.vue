@@ -4,7 +4,7 @@
                                   :title="tt(title)" :cancel-button-title="tt('Cancel')"
                                   @cancel="cancel">
             <template #toolbar>
-                <v-text-field class="mx-2" density="compact"
+                <v-text-field class="mx-2" autocomplete="off" density="compact"
                               :disabled="loading || !hasAnyAvailableTag"
                               :prepend-inner-icon="mdiMagnify"
                               :placeholder="tt('Find tag')"
@@ -94,7 +94,8 @@
                                             <v-list-item class="text-body-medium ps-0">
                                                 <template #prepend>
                                                     <v-badge class="right-bottom-icon" color="secondary"
-                                                             location="bottom right" offset-x="2" offset-y="2" :icon="mdiEyeOffOutline"
+                                                             location="bottom right" offset-x="2" offset-y="2"
+                                                             :aria-label="tt('Hidden')" :icon="mdiEyeOffOutline"
                                                              v-if="transactionTag.hidden">
                                                         <v-icon size="18" :icon="mdiPound"/>
                                                     </v-badge>

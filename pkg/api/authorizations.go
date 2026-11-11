@@ -1,11 +1,9 @@
 package api
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"errors"
 	"time"
-
-	"github.com/pquerna/otp/totp"
 
 	"github.com/mayswind/ezbookkeeping/pkg/avatars"
 	"github.com/mayswind/ezbookkeeping/pkg/core"
@@ -40,14 +38,15 @@ var (
 			ApiUsingConfig: ApiUsingConfig{
 				container: settings.Container,
 			},
-			container: duplicatechecker.Container,
+			duplicateChecker: duplicatechecker.Container,
 		},
 		ApiWithUserInfo: ApiWithUserInfo{
 			ApiUsingConfig: ApiUsingConfig{
 				container: settings.Container,
 			},
 			ApiUsingAvatarProvider: ApiUsingAvatarProvider{
-				container: avatars.Container,
+				avatarProvider: avatars.Container,
+				tokens:         services.Tokens,
 			},
 		},
 		users:                   services.Users,
@@ -135,11 +134,12 @@ func (a *AuthorizationsApi) AuthorizeHandler(c *core.WebContext) (any, *errs.Err
 
 	var token string
 	var claims *core.UserTokenClaims
+	var tokenRecord core.TokenRecord
 
 	if twoFactorEnable {
-		token, claims, err = a.tokens.CreateRequire2FAToken(c, user)
+		token, claims, tokenRecord, err = a.tokens.CreateRequire2FAToken(c, user)
 	} else {
-		token, claims, err = a.tokens.CreateToken(c, user)
+		token, claims, tokenRecord, err = a.tokens.CreateToken(c, user)
 	}
 
 	if err != nil {
@@ -152,7 +152,9 @@ func (a *AuthorizationsApi) AuthorizeHandler(c *core.WebContext) (any, *errs.Err
 	}
 
 	c.SetTokenClaims(claims)
-	c.SetTokenContext("")
+	c.SetTokenRecord(tokenRecord)
+
+	log.Infof(c, "[authorizations.AuthorizeHandler] user \"uid:%d\" has logged in, token type is %d, token will be expired at %d", user.Uid, claims.Type, claims.ExpiresAt)
 
 	userApplicationCloudSettings, err := a.userAppCloudSettings.GetUserApplicationCloudSettingsByUid(c, user.Uid)
 	var applicationCloudSettingSlice *models.ApplicationCloudSettingSlice = nil
@@ -163,9 +165,13 @@ func (a *AuthorizationsApi) AuthorizeHandler(c *core.WebContext) (any, *errs.Err
 		applicationCloudSettingSlice = &userApplicationCloudSettings.Settings
 	}
 
-	log.Infof(c, "[authorizations.AuthorizeHandler] user \"uid:%d\" has logged in, token type is %d, token will be expired at %d", user.Uid, claims.Type, claims.ExpiresAt)
+	authResp, err := a.getAuthResponse(c, token, claims, tokenRecord, twoFactorEnable, user, applicationCloudSettingSlice)
 
-	authResp := a.getAuthResponse(c, token, twoFactorEnable, user, applicationCloudSettingSlice)
+	if err != nil {
+		log.Errorf(c, "[authorizations.AuthorizeHandler] failed to get auth response for user \"uid:%d\", because %s", user.Uid, err.Error())
+		return nil, errs.Or(err, errs.ErrOperationFailed)
+	}
+
 	return authResp, nil
 }
 
@@ -198,13 +204,7 @@ func (a *AuthorizationsApi) TwoFactorAuthorizeHandler(c *core.WebContext) (any, 
 		return nil, errs.Or(err, errs.ErrSystemError)
 	}
 
-	passcodeUsed, passcodeHash := a.is2FAPasscodeUsed(c, uid, credential.Passcode)
-
-	if passcodeUsed {
-		return nil, errs.ErrPasscodeInvalid
-	}
-
-	if !totp.Validate(credential.Passcode, twoFactorSetting.Secret) {
+	if !a.twoFactorAuthorizations.ValidateTwoFactorPasscode(c, credential.Passcode, twoFactorSetting.Secret) {
 		log.Warnf(c, "[authorizations.TwoFactorAuthorizeHandler] passcode is invalid for user \"uid:%d\"", uid)
 
 		err = a.CheckAndIncreaseFailureCount(c, uid)
@@ -217,7 +217,18 @@ func (a *AuthorizationsApi) TwoFactorAuthorizeHandler(c *core.WebContext) (any, 
 		return nil, errs.ErrPasscodeInvalid
 	}
 
-	a.update2FAPasscodeUsed(c, uid, passcodeHash)
+	passcodeUsed := a.update2FAPasscodeUsed(c, uid, credential.Passcode)
+
+	if passcodeUsed {
+		err = a.CheckAndIncreaseFailureCount(c, uid)
+
+		if err != nil {
+			log.Warnf(c, "[authorizations.TwoFactorAuthorizeHandler] cannot auth for user \"uid:%d\", because %s", uid, err.Error())
+			return nil, errs.Or(err, errs.ErrFailureCountLimitReached)
+		}
+
+		return nil, errs.ErrPasscodeInvalid
+	}
 
 	user, err := a.users.GetUserById(c, uid)
 
@@ -243,7 +254,7 @@ func (a *AuthorizationsApi) TwoFactorAuthorizeHandler(c *core.WebContext) (any, 
 		log.Warnf(c, "[authorizations.TwoFactorAuthorizeHandler] failed to revoke temporary token \"utid:%s\" for user \"uid:%d\", because %s", oldTokenClaims.UserTokenId, user.Uid, err.Error())
 	}
 
-	token, claims, err := a.tokens.CreateToken(c, user)
+	token, claims, tokenRecord, err := a.tokens.CreateToken(c, user)
 
 	if err != nil {
 		log.Errorf(c, "[authorizations.TwoFactorAuthorizeHandler] failed to create token for user \"uid:%d\", because %s", user.Uid, err.Error())
@@ -252,7 +263,9 @@ func (a *AuthorizationsApi) TwoFactorAuthorizeHandler(c *core.WebContext) (any, 
 
 	c.SetTextualToken(token)
 	c.SetTokenClaims(claims)
-	c.SetTokenContext("")
+	c.SetTokenRecord(tokenRecord)
+
+	log.Infof(c, "[authorizations.TwoFactorAuthorizeHandler] user \"uid:%d\" has authorized two-factor via passcode, token will be expired at %d", user.Uid, claims.ExpiresAt)
 
 	userApplicationCloudSettings, err := a.userAppCloudSettings.GetUserApplicationCloudSettingsByUid(c, user.Uid)
 	var applicationCloudSettingSlice *models.ApplicationCloudSettingSlice = nil
@@ -263,9 +276,13 @@ func (a *AuthorizationsApi) TwoFactorAuthorizeHandler(c *core.WebContext) (any, 
 		applicationCloudSettingSlice = &userApplicationCloudSettings.Settings
 	}
 
-	log.Infof(c, "[authorizations.TwoFactorAuthorizeHandler] user \"uid:%d\" has authorized two-factor via passcode, token will be expired at %d", user.Uid, claims.ExpiresAt)
+	authResp, err := a.getAuthResponse(c, token, claims, tokenRecord, false, user, applicationCloudSettingSlice)
 
-	authResp := a.getAuthResponse(c, token, false, user, applicationCloudSettingSlice)
+	if err != nil {
+		log.Errorf(c, "[authorizations.TwoFactorAuthorizeHandler] failed to get auth response for user \"uid:%d\", because %s", user.Uid, err.Error())
+		return nil, errs.Or(err, errs.ErrOperationFailed)
+	}
+
 	return authResp, nil
 }
 
@@ -319,7 +336,7 @@ func (a *AuthorizationsApi) TwoFactorAuthorizeByRecoveryCodeHandler(c *core.WebC
 		return nil, errs.ErrEmailIsNotVerified
 	}
 
-	err = a.twoFactorAuthorizations.GetAndUseUserTwoFactorRecoveryCode(c, uid, credential.RecoveryCode, user.Salt)
+	err = a.twoFactorAuthorizations.UseUserTwoFactorRecoveryCode(c, uid, credential.RecoveryCode, user.Salt)
 
 	if errs.IsCustomError(err) {
 		failureCheckErr := a.CheckAndIncreaseFailureCount(c, uid)
@@ -342,7 +359,7 @@ func (a *AuthorizationsApi) TwoFactorAuthorizeByRecoveryCodeHandler(c *core.WebC
 		log.Warnf(c, "[authorizations.TwoFactorAuthorizeByRecoveryCodeHandler] failed to revoke temporary token \"utid:%s\" for user \"uid:%d\", because %s", oldTokenClaims.UserTokenId, user.Uid, err.Error())
 	}
 
-	token, claims, err := a.tokens.CreateToken(c, user)
+	token, claims, tokenRecord, err := a.tokens.CreateToken(c, user)
 
 	if err != nil {
 		log.Errorf(c, "[authorizations.TwoFactorAuthorizeByRecoveryCodeHandler] failed to create token for user \"uid:%d\", because %s", user.Uid, err.Error())
@@ -351,7 +368,9 @@ func (a *AuthorizationsApi) TwoFactorAuthorizeByRecoveryCodeHandler(c *core.WebC
 
 	c.SetTextualToken(token)
 	c.SetTokenClaims(claims)
-	c.SetTokenContext("")
+	c.SetTokenRecord(tokenRecord)
+
+	log.Infof(c, "[authorizations.TwoFactorAuthorizeByRecoveryCodeHandler] user \"uid:%d\" has authorized two-factor via recovery code \"%s\", token will be expired at %d", user.Uid, credential.RecoveryCode, claims.ExpiresAt)
 
 	userApplicationCloudSettings, err := a.userAppCloudSettings.GetUserApplicationCloudSettingsByUid(c, user.Uid)
 	var applicationCloudSettingSlice *models.ApplicationCloudSettingSlice = nil
@@ -362,9 +381,13 @@ func (a *AuthorizationsApi) TwoFactorAuthorizeByRecoveryCodeHandler(c *core.WebC
 		applicationCloudSettingSlice = &userApplicationCloudSettings.Settings
 	}
 
-	log.Infof(c, "[authorizations.TwoFactorAuthorizeByRecoveryCodeHandler] user \"uid:%d\" has authorized two-factor via recovery code \"%s\", token will be expired at %d", user.Uid, credential.RecoveryCode, claims.ExpiresAt)
+	authResp, err := a.getAuthResponse(c, token, claims, tokenRecord, false, user, applicationCloudSettingSlice)
 
-	authResp := a.getAuthResponse(c, token, false, user, applicationCloudSettingSlice)
+	if err != nil {
+		log.Errorf(c, "[authorizations.TwoFactorAuthorizeByRecoveryCodeHandler] failed to get auth response for user \"uid:%d\", because %s", user.Uid, err.Error())
+		return nil, errs.Or(err, errs.ErrOperationFailed)
+	}
+
 	return authResp, nil
 }
 
@@ -451,13 +474,7 @@ func (a *AuthorizationsApi) OAuth2CallbackAuthorizeHandler(c *core.WebContext) (
 					return nil, errs.ErrPasscodeEmpty
 				}
 
-				passcodeUsed, passcodeHash := a.is2FAPasscodeUsed(c, uid, credential.Passcode)
-
-				if passcodeUsed {
-					return nil, errs.ErrPasscodeInvalid
-				}
-
-				if !totp.Validate(credential.Passcode, twoFactorSetting.Secret) {
+				if !a.twoFactorAuthorizations.ValidateTwoFactorPasscode(c, credential.Passcode, twoFactorSetting.Secret) {
 					log.Warnf(c, "[authorizations.OAuth2CallbackAuthorizeHandler] passcode is invalid for user \"uid:%d\"", uid)
 
 					err = a.CheckAndIncreaseFailureCount(c, uid)
@@ -470,7 +487,18 @@ func (a *AuthorizationsApi) OAuth2CallbackAuthorizeHandler(c *core.WebContext) (
 					return nil, errs.ErrPasscodeInvalid
 				}
 
-				a.update2FAPasscodeUsed(c, uid, passcodeHash)
+				passcodeUsed := a.update2FAPasscodeUsed(c, uid, credential.Passcode)
+
+				if passcodeUsed {
+					err = a.CheckAndIncreaseFailureCount(c, uid)
+
+					if err != nil {
+						log.Warnf(c, "[authorizations.OAuth2CallbackAuthorizeHandler] cannot auth for user \"uid:%d\", because %s", uid, err.Error())
+						return nil, errs.Or(err, errs.ErrFailureCountLimitReached)
+					}
+
+					return nil, errs.ErrPasscodeInvalid
+				}
 			}
 		}
 
@@ -508,16 +536,21 @@ func (a *AuthorizationsApi) OAuth2CallbackAuthorizeHandler(c *core.WebContext) (
 
 	var token string
 	var claims *core.UserTokenClaims
+	var tokenRecord core.TokenRecord
 
 	if credential.Token != "" {
-		_, claims, _, err = a.tokens.ParseToken(c, credential.Token)
+		claims, tokenRecord, err = a.tokens.ParseToken(c, credential.Token)
 
 		if err != nil {
 			log.Errorf(c, "[authorizations.OAuth2CallbackAuthorizeHandler] failed to parse token, because %s", err.Error())
 			return nil, errs.ErrInvalidToken
 		}
 
-		if claims.Uid != user.Uid {
+		if claims.Type != core.USER_TOKEN_TYPE_NORMAL {
+			log.Warnf(c, "[authorizations.OAuth2CallbackAuthorizeHandler] token type \"%d\" is not allowed to login via oauth 2.0", claims.Type)
+			token = ""
+			claims = nil
+		} else if claims.Uid != user.Uid {
 			log.Warnf(c, "[authorizations.OAuth2CallbackAuthorizeHandler] oauth 2.0 user \"uid:%d\" does not match current user \"uid:%d\"", user.Uid, claims.Uid)
 			token = ""
 			claims = nil
@@ -527,7 +560,7 @@ func (a *AuthorizationsApi) OAuth2CallbackAuthorizeHandler(c *core.WebContext) (
 	}
 
 	if token == "" {
-		token, claims, err = a.tokens.CreateToken(c, user)
+		token, claims, tokenRecord, err = a.tokens.CreateToken(c, user)
 
 		if err != nil {
 			log.Errorf(c, "[authorizations.OAuth2CallbackAuthorizeHandler] failed to create token for user \"uid:%d\", because %s", user.Uid, err.Error())
@@ -537,7 +570,9 @@ func (a *AuthorizationsApi) OAuth2CallbackAuthorizeHandler(c *core.WebContext) (
 
 	c.SetTextualToken(token)
 	c.SetTokenClaims(claims)
-	c.SetTokenContext("")
+	c.SetTokenRecord(tokenRecord)
+
+	log.Infof(c, "[authorizations.OAuth2CallbackAuthorizeHandler] user \"uid:%d\" has logged in, token will be expired at %d", user.Uid, claims.ExpiresAt)
 
 	userApplicationCloudSettings, err := a.userAppCloudSettings.GetUserApplicationCloudSettingsByUid(c, user.Uid)
 	var applicationCloudSettingSlice *models.ApplicationCloudSettingSlice = nil
@@ -548,34 +583,64 @@ func (a *AuthorizationsApi) OAuth2CallbackAuthorizeHandler(c *core.WebContext) (
 		applicationCloudSettingSlice = &userApplicationCloudSettings.Settings
 	}
 
-	log.Infof(c, "[authorizations.OAuth2CallbackAuthorizeHandler] user \"uid:%d\" has logged in, token will be expired at %d", user.Uid, claims.ExpiresAt)
+	authResp, err := a.getAuthResponse(c, token, claims, tokenRecord, false, user, applicationCloudSettingSlice)
 
-	authResp := a.getAuthResponse(c, token, false, user, applicationCloudSettingSlice)
+	if err != nil {
+		log.Errorf(c, "[authorizations.OAuth2CallbackAuthorizeHandler] failed to get auth response for user \"uid:%d\", because %s", user.Uid, err.Error())
+		return nil, errs.Or(err, errs.ErrOperationFailed)
+	}
+
 	return authResp, nil
 }
 
-func (a *AuthorizationsApi) getAuthResponse(c *core.WebContext, token string, need2FA bool, user *models.User, applicationCloudSettings *models.ApplicationCloudSettingSlice) *models.AuthResponse {
+func (a *AuthorizationsApi) getAuthResponse(c *core.WebContext, token string, claims *core.UserTokenClaims, tokenRecord core.TokenRecord, need2FA bool, user *models.User, applicationCloudSettings *models.ApplicationCloudSettingSlice) (*models.AuthResponse, error) {
+	if need2FA {
+		return &models.AuthResponse{
+			Token:   token,
+			Need2FA: need2FA,
+		}, nil
+	}
+
+	userBasicInfo, err := a.GetUserBasicInfo(c, user)
+
+	if err != nil {
+		log.Errorf(c, "[authorizations.getAuthResponse] failed to get user basic info for user \"uid:%d\", because %s", user.Uid, err.Error())
+		return nil, errs.Or(err, errs.ErrOperationFailed)
+	}
+
+	mapProxyEnabled := a.CurrentConfig().EnableMapDataFetchProxy && a.CurrentConfig().SupportMapDataFetchProxy
+	amapInternalProxyEnabled := a.CurrentConfig().MapProvider == settings.AmapProvider && a.CurrentConfig().AmapSecurityVerificationMethod == settings.AmapSecurityVerificationInternalProxyMethod
+	var mapProxyToken string
+
+	if claims != nil && claims.Type == core.USER_TOKEN_TYPE_NORMAL && (mapProxyEnabled || amapInternalProxyEnabled) {
+		token, _, err := a.tokens.DeriveMapProxyToken(c, claims, tokenRecord)
+
+		if err != nil {
+			log.Errorf(c, "[authorizations.getAuthResponse] failed to derive map proxy token for user \"uid:%d\", because %s", user.Uid, err.Error())
+			return nil, errs.Or(err, errs.ErrOperationFailed)
+		}
+
+		mapProxyToken = token
+		c.SetTextualMapProxyToken(token)
+	}
+
 	return &models.AuthResponse{
 		Token:                    token,
+		MapProxyToken:            mapProxyToken,
 		Need2FA:                  need2FA,
-		User:                     a.GetUserBasicInfo(user),
+		User:                     userBasicInfo,
 		ApplicationCloudSettings: applicationCloudSettings,
 		NotificationContent:      a.GetAfterLoginNotificationContent(user.Language, c.GetClientLocale()),
-	}
+	}, nil
 }
 
-func (a *AuthorizationsApi) is2FAPasscodeUsed(c *core.WebContext, uid int64, passcode string) (bool, string) {
+func (a *AuthorizationsApi) update2FAPasscodeUsed(c *core.WebContext, uid int64, passcode string) bool {
 	passcodeHash := utils.MD5EncodeToStringWithUidAndSalt([]byte(passcode), uid, a.CurrentConfig().SecretKey)
-	found, remark := a.GetSubmissionRemark(duplicatechecker.DUPLICATE_CHECKER_TYPE_2FA_PASSCODE, uid, passcodeHash)
+	found, remark := a.GetOrSetSubmissionRemarkWithCustomExpiration(duplicatechecker.DUPLICATE_CHECKER_TYPE_2FA_PASSCODE, uid, passcodeHash, utils.Int64ToString(time.Now().Unix()), a.twoFactorAuthorizations.GetTwoFactorPasscodeExpirationDuration())
 
 	if found {
-		log.Warnf(c, "[authorizations.is2FAPasscodeUsed] passcode \"%s\" has been used for user \"uid:%d\" in unix timestamp %s", passcode, uid, remark)
-		return true, passcodeHash
+		log.Warnf(c, "[authorizations.update2FAPasscodeUsed] passcode \"%s\" has been used for user \"uid:%d\" in unix timestamp %s", passcode, uid, remark)
 	}
 
-	return false, passcodeHash
-}
-
-func (a *AuthorizationsApi) update2FAPasscodeUsed(c *core.WebContext, uid int64, passcodeHash string) {
-	a.SetSubmissionRemarkWithCustomExpiration(duplicatechecker.DUPLICATE_CHECKER_TYPE_2FA_PASSCODE, uid, passcodeHash, utils.Int64ToString(time.Now().Unix()), 30*time.Second)
+	return found
 }

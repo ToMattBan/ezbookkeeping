@@ -61,7 +61,7 @@
                                 type="text"
                                 autocomplete="nickname"
                                 persistent-placeholder
-                                max-width="400px"
+                                max-width="320px"
                                 :disabled="loading || saving"
                                 :placeholder="tt('Your nickname')"
                                 v-model="newProfile.nickname"
@@ -77,7 +77,7 @@
                                 type="email"
                                 autocomplete="email"
                                 persistent-placeholder
-                                max-width="400px"
+                                max-width="320px"
                                 :disabled="loading || saving"
                                 :placeholder="tt('Your email address')"
                                 v-model="newProfile.email"
@@ -96,6 +96,7 @@
                                                secondary-key-field="id" secondary-value-field="id"
                                                secondary-title-field="name"
                                                secondary-icon-field="icon" secondary-icon-type-field="iconType" secondary-icon-type="account" secondary-color-field="color"
+                                               :menu-props="{ contentClass: 'two-column-select-menu select-menu-x-large' }"
                                                :disabled="loading || saving || !allVisibleAccounts.length"
                                                :enable-filter="true" :filter-placeholder="tt('Find account')" :filter-no-items-text="tt('No available account')"
                                                :placeholder="tt('Default Account')"
@@ -155,6 +156,7 @@
                             <span>{{ languageTitle }}</span>
                             <v-spacer/>
                             <language-select class="ms-4" density="compact" max-width="400px"
+                                             :menu-props="{ contentClass: 'select-menu-large' }"
                                              :disabled="loading || saving"
                                              :placeholder="languageTitle"
                                              :include-system-default="true"
@@ -165,6 +167,7 @@
                             <span>{{ tt('Default Currency') }}</span>
                             <v-spacer/>
                             <currency-select class="ms-4" density="compact" max-width="400px"
+                                             :menu-props="{ contentClass: 'select-menu-large' }"
                                              :disabled="loading || saving"
                                              :placeholder="tt('Default Currency')"
                                              v-model="newProfile.defaultCurrency" />
@@ -514,7 +517,6 @@ import { SUPPORTED_IMAGE_EXTENSIONS } from '@/consts/file.ts';
 import type { UserProfileResponse } from '@/models/user.ts';
 import { Account } from '@/models/account.ts';
 
-import { generateRandomUUID } from '@/lib/misc.ts';
 import { isUserVerifyEmailEnabled } from '@/lib/server_settings.ts';
 
 import {
@@ -578,9 +580,8 @@ const avatarInput = useTemplateRef<HTMLInputElement>('avatarInput');
 
 const avatarUrl = ref<string>('');
 const avatarProvider = ref<string | undefined>('');
-const avatarNoCacheId = ref<string>('');
 
-const currentUserAvatar = computed<string | null>(() => userStore.getUserAvatarUrl(avatarUrl.value, avatarNoCacheId.value));
+const currentUserAvatar = computed<string | null>(() => userStore.getUserAvatarUrl(avatarUrl.value));
 
 function init(): void {
     loading.value = true;
@@ -656,7 +657,6 @@ function updateAvatar(event: Event): void {
         if (response) {
             avatarUrl.value = response.avatar;
             avatarProvider.value = response.avatarProvider;
-            avatarNoCacheId.value = generateRandomUUID();
             setCurrentUserProfile(response);
         }
 
@@ -735,6 +735,12 @@ init();
     align-items: center;
     justify-content: center;
     vertical-align: middle;
+}
+
+.v-theme--dark {
+    .user-profile-avatar-icon:hover .avatar-edit-icon {
+        background-color: rgba(64, 64, 64, 0.6);
+    }
 }
 
 .user-profile-avatar-icon-modifiable:hover .user-profile-avatar-placeholder {

@@ -1,7 +1,7 @@
 package mcp
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"reflect"
 	"strings"
 	"time"
@@ -35,6 +35,11 @@ type MCPQueryExchangeRateInfo struct {
 type mcpQueryLatestExchangeRatesToolHandler struct{}
 
 var MCPQueryLatestExchangeRatesToolHandler = &mcpQueryLatestExchangeRatesToolHandler{}
+
+// ToolType returns the MCP tool type
+func (h *mcpQueryLatestExchangeRatesToolHandler) ToolType() core.MCPToolType {
+	return core.MCP_TOOL_TYPE_QUERY_LATEST_EXCHANGE_RATES
+}
 
 // Name returns the name of the MCP tool
 func (h *mcpQueryLatestExchangeRatesToolHandler) Name() string {
